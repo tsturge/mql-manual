@@ -1,0 +1,820 @@
+
+<!-- saved from url=(0032)http://mql.freebaseapps.com/ch06 -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <title>
+        MQL Reference Guide: 
+  Chapter 6. Metaweb Write Services
+      </title>
+      <link href="./MQL Reference Guide  Chapter 6. Metaweb Write Services_files/stylesheet.css" rel="stylesheet" type="text/css">
+              
+  
+  <link href="http://mql.freebaseapps.com/index" rel="home" title="Table of Contents">
+  <link href="http://mql.freebaseapps.com/index" rel="up" title="Table of Contents">
+  <link href="http://mql.freebaseapps.com/ch05" rel="prev" title="Chapter 5. The MQL Write Grammar">
+    </head>
+    <body>
+      
+  <div id="header">
+    <div id="nav">
+      Chapter 6. Metaweb Write Services        
+      
+      <a href="http://mql.freebaseapps.com/ch05">◁ previous</a> 
+      <a href="http://mql.freebaseapps.com/index">△ contents</a> 
+    </div>
+    
+    <div id="logo">
+      <a href="http://mql.freebaseapps.com/index" title="MQL Reference Guide contents"><img alt="MQL Reference Guide" border="0" height="18" width="258" src="./MQL Reference Guide  Chapter 6. Metaweb Write Services_files/logo-mqlreference.png"></a>
+    </div>
+  </div>
+      
+    <div class="chapter" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title">
+              <a id="mqlwrite" name="mqlwrite"></a>Chapter 6. Metaweb Write Services
+            </h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        This chapter explains, and demonstrates with examples, how to deliver MQL write queries to Metaweb's <span class="emphasis"><em>mqlwrite</em></span> service. As a necessary prerequisite, it shows how to log in to Metaweb to obtain authentication credentials. The chapter also demonstrates how to use the <span class="emphasis"><em>upload</em></span> service to upload content, such as images and HTML documents to the Metaweb content store.
+      </p>
+      <p>
+        The examples in this chapter are written in Python. Some are extensions to the <span class="emphasis"><em>metaweb.py</em></span> module of <a class="xref" href="http://mql.freebaseapps.com/ch04.html#metaweb1.py" title="Example 4.15. metaweb.py: a Python module for Metaweb">Example 4.15</a>, adding support for the various write services. Other examples are command-line scripts that use <span class="emphasis"><em>metaweb.py</em></span> to create Metaweb objects and upload content.
+      </p>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title">
+                <a id="freebaseauthentication" name="freebaseauthentication"></a>6.1. Logging in to Metaweb
+              </h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          No registration or authentication is required to use the <span class="emphasis"><em>mqlread</em></span> service, but writing to Metaweb requires that you login first. Before we can cover <span class="emphasis"><em>mqlwrite</em></span>, therefore, we must explain the <span class="emphasis"><em>login</em></span> service.
+        </p>
+        <p>
+          Since Metaweb services are HTTP-based, Metaweb authentication is cookie-based. You log in to the sandbox server by making an HTTP request (either a GET or a POST) to the URL <code class="literal">https://sandbox.freebase.com/api/account/login</code>, passing your username and password as URL-encoded form parameters. If login is successful, Metaweb returns one or more HTTP cookies in the response headers. These cookies contain your authentication credentials, and you must pass these back to Metaweb in the HTTP request headers of all subsequent write and upload requests. To log into the main <span class="emphasis"><em>freebase.com</em></span> server instead of the sandbox, use <span class="emphasis"><em>api.freebase.com</em></span> instead of <span class="emphasis"><em>sandbox.freebase.com</em></span>.
+        </p>
+        <p>
+          The names and values of the authentication cookies are an implementation detail rather than a specification detail, and are subject to change. To ensure success, your code should accept all cookies returned by the <span class="emphasis"><em>login</em></span> service, and must present all of them to subsequent calls to the <span class="emphasis"><em>mqlwrite</em></span> and <span class="emphasis"><em>upload</em></span> services.
+        </p>
+        <p>
+          If you write your applications using a suitably high-level HTTP library (or run them in a browser), cookie handling may be performed automatically for you. In this case, you may want to add the parameter <code class="literal">rememberme=1</code> to the <span class="emphasis"><em>login</em></span> request; doing this will cause Metaweb to return persistent cookies rather than session cookies. In the <span class="emphasis"><em>metaweb.py</em></span> module shown in <a class="xref" href="http://mql.freebaseapps.com/ch04.html#metaweb1.py" title="Example 4.15. metaweb.py: a Python module for Metaweb">Example 4.15</a>, the <code class="literal">Session</code> class maintains a "cookie jar" for storing cookies, and the <code class="literal">_http()</code> utility method adds cookies to each HTTP request and retrieves new cookies values from each HTTP response. We can therefore add support for write services to the module without doing any explicit cookie management.
+        </p>
+        <p>
+          The cookies returned by the login service have a long lifetime and it is possible for a script to login once, and then save the contents of its cookie jar to a file. On subsequent runs, it can load the cookie jar from the file rather than logging in again. The examples in this chapter, however, simply call the login service each time the script is executed.
+        </p>
+        <div class="sidebar">
+          <p class="title">
+            <b>Metaweb Credentials and Security</b>
+          </p>
+          <p>
+            If you use the normal HTTP protocol, the password you supply to the <span class="emphasis"><em>login</em></span> service, and the authentication cookies you pass to <span class="emphasis"><em>mqlwrite</em></span> and <span class="emphasis"><em>upload</em></span> are transferred across the network unencrypted and could be observed in transit. If you are concerned about this, use HTTPS instead of HTTP for the <span class="emphasis"><em>login</em></span>, <span class="emphasis"><em>write</em></span> and <span class="emphasis"><em>upload</em></span> services. To protect your credentials you must also use HTTPS any time you log in to the <span class="emphasis"><em>freebase.com</em></span> client. Note that the examples in this chapter do not use HTTPS.
+          </p>
+        </div>
+        <p>
+          <a class="xref" href="http://mql.freebaseapps.com/ch06.html#login.py" title="Example 6.1. metaweb.py: the login service">Example 6.1</a> shows the Python code for a Metaweb <code class="literal">login()</code> method. This method is written to be part of the <code class="literal">metaweb.Session</code> class of <a class="xref" href="http://mql.freebaseapps.com/ch04.html#metaweb1.py" title="Example 4.15. metaweb.py: a Python module for Metaweb">Example 4.15</a>, and it depends on constants and utility methods defined in that example. If login fails, the <code class="literal">login()</code> method raises a <code class="literal">metaweb.ServiceError</code> exception. Otherwise it stores authentication credentials in the cookie jar of the Session object and returns silently.
+        </p>
+        <div class="example">
+          <a id="login.py" name="login.py"></a>
+          <p class="title">
+            <b>Example 6.1. metaweb.py: the login service</b>
+          </p>
+          <div class="example-contents">
+            <pre class="programlisting">def login(self, username, password):
+    """
+    Submit the username and password to the Metaweb login service.
+
+    This causes Metaweb to return an authentication cookie which will
+    be passed back to the server with all subsequent requests.
+    Returns nothing, but raises ServiceError on failure.
+    """
+
+    # This is the URL that we POST our login request to
+    url = "https://%s%s" % (self.host, LOGIN)
+    # This header specifies how the request body is encoded
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    # This is the body of the request
+    body = urllib.urlencode({'username':username, 'password':password})
+
+    # POST the request body to the url.  Store authentication cookies
+    # returned with the response. Parse the response to test for success
+    # and raise an error if login failed.
+    self._check(self._fetch(url, headers, body))
+</pre>
+          </div>
+        </div><br class="example-break">
+        <p>
+          The fact that this <code class="literal">login()</code> method can use the same <code class="literal">_fetch()</code> and <code class="literal">_check()</code> utility methods that the read services of <a class="xref" href="http://mql.freebaseapps.com/ch04.html" title="Chapter 4. Metaweb Read Services">Chapter 4</a> do indicates that the Metaweb login service behaves very much like a read service. The HTTP response body is a JSON object that includes a <code class="literal">code</code> property. If the value of this property is "/api/status/ok", then the login was successful, and the Cookie header of the response contains the authentication credentials. Otherwise, the login failed, and the <code class="literal">messages</code> property contains an error message and other details.
+        </p>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title">
+                <a id="mqlwritequeries" name="mqlwritequeries"></a>6.2. Making Write Queries
+              </h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          <a class="xref" href="http://mql.freebaseapps.com/ch05.html" title="Chapter 5. The MQL Write Grammar">Chapter 5</a> explained, in great detail, how to express write queries in MQL. Now we explain how to send those queries to Metaweb and retrieve the result. The Metaweb write service is <span class="emphasis"><em>mqlwrite</em></span>. The path to this service is <code class="literal">/api/service/mqlwrite</code>, and using it is much like using <span class="emphasis"><em>mqlread</em></span>. Follow these steps to perform a write:
+        </p>
+        <div class="orderedlist">
+          <ol>
+            <li>
+              <p>
+                Place your write query into a request envelope object, as the value of the <code class="literal">query</code> property.
+              </p>
+            </li>
+            <li>
+              <p>
+                Add any necessary envelope parameters to the envelope object.
+              </p>
+            </li>
+            <li>
+              <p>
+                Serialize the envelope object to a JSON string, and URL encode the string.
+              </p>
+            </li>
+            <li>
+              <p>
+                Make an HTTP POST request to <code class="literal">/api/service/mqlwrite</code> on the Metaweb server, configured as follows:
+              </p>
+              <div class="itemizedlist">
+                <ul>
+                  <li>
+                    <p>
+                      The body of the request should be the string <code class="literal">query=</code> followed by the URL-encoded and JSON serialized query envelope
+                    </p>
+                  </li>
+                  <li>
+                    <p>
+                      The request must have a <code class="literal">Cookie</code> header that contains the authentication cookies returned by the login service.
+                    </p>
+                  </li>
+                  <li>
+                    <p>
+                      For security reasons, the request must also include an <code class="literal">X-Metaweb-Request</code> header. The value doesn't matter; this header must simply be present.
+                    </p>
+                  </li>
+                </ul>
+              </div>
+            </li>
+            <li>
+              <p>
+                When the response arrives, parse the <code class="literal">Set-Cookie</code> header to extract the <code class="literal">mwLastWriteTime</code> cookie and save it for use with subsequent read requests.
+              </p>
+            </li>
+            <li>
+              <p>
+                The body of the response will be a JSON string. Parse this to obtain the response envelope.
+              </p>
+            </li>
+            <li>
+              <p>
+                Check the <code class="literal">code</code> property of the response envelope. If it is "/api/status/ok", then the write query succeeded and the <code class="literal">result</code> property of the response envelope contains the query results. If the <code class="literal">code</code> property has any other value, then the write failed, and the <code class="literal">messages</code> property is an array of message objects that contain details.
+              </p>
+            </li>
+          </ol>
+        </div>
+        <p>
+          In addition to special cookie and HTTP header requirements, there are two important differences between <span class="emphasis"><em>mqlwrite</em></span> and <span class="emphasis"><em>mqlread</em></span>. First, <code class="literal">mqlwrite</code> responds only to POST requests, not GET requests. Second, it does not support a <code class="literal">callback</code> URL parameter. These differences mean that it is impossible to invoke the <span class="emphasis"><em>mqlwrite</em></span> service from client-side JavaScript code using a <code class="literal">&lt;script&gt;</code> tag.
+        </p>
+        <p>
+          The sub-sections that follow demonstrate the use of <span class="emphasis"><em>mqlwrite</em></span> with Python code, explain how to submit multiple named queries in a single <span class="emphasis"><em>mqlwrite</em></span> invocation, and provide details about <span class="emphasis"><em>mqlwrite</em></span> envelope parameters, the <code class="literal">X-Metaweb-Request</code> header, the <code class="literal">mwLastWriteTime</code> cookie.
+        </p>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="id2971800" name="id2971800"></a>6.2.1. Using mqlwrite With Python
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            <a class="xref" href="http://mql.freebaseapps.com/ch06.html#write.py" title="Example 6.2. metaweb.py: invoking the mqlwrite service">Example 6.2</a> is a <code class="literal">write()</code> method intended to be inserted into the <code class="literal">metaweb.Session</code> class of <a class="xref" href="http://mql.freebaseapps.com/ch04.html#metaweb1.py" title="Example 4.15. metaweb.py: a Python module for Metaweb">Example 4.15</a>. It uses a number of the utility methods defined in that previous example, and the fact that these utilities can be shared between <span class="emphasis"><em>mqlread</em></span> and <span class="emphasis"><em>mqlwrite</em></span> code demonstrates how similar these two services are. In particular, recall that the <code class="literal">_fetch</code> utility method invokes the <code class="literal">_http</code> method, which does automatic cookie management. This means that our code does not have to explicitly handle authentication credentials or the <code class="literal">mwLastWriteTime</code> cookie. Also, remember that: <code class="literal">_http</code> automatically does an HTTP POST when a body is supplied for the request, <code class="literal">_fetch</code> does JSON parsing of the HTTP result, and <code class="literal">_check</code> raises a <code class="literal">ServiceError</code> if the <code class="literal">code</code> property of the response is not <code class="literal">/api/status/ok</code>.
+          </p>
+          <div class="example">
+            <a id="write.py" name="write.py"></a>
+            <p class="title">
+              <b>Example 6.2. metaweb.py: invoking the mqlwrite service</b>
+            </p>
+            <div class="example-contents">
+              <pre class="programlisting">def write(self, q, **options):
+    """
+    Submit the MQL write q and return the result as a Python object.
+    Options specify envelope parameters. Authentication credentials, 
+    from a previous call to login() must exist in the cookie jar.
+    Raises ServiceError if the query fails.
+    """
+
+    # We're requesting this URL
+    url = 'https://%s%s' % (self.host, WRITE)
+
+    # These headers identify how the query is encoded in the request body
+    # and guard against XSS attacks.
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Metaweb-Request': 'True'
+        }
+
+    # Gather options that apply to this query
+    opts = self._getopts("use_permission_of", **options)
+
+    # Build the query envelope, adding options to it
+    envelope = {'query': q}
+    envelope.update(opts)
+
+    # JSON encode the envelope
+    encoded = self._dumpjson(envelope)
+
+    # Use the encoded envelope as the value of the query parameter in 
+    # the body of the request.
+    body = urllib.urlencode({'query':encoded})
+
+    # Now do the POST and parse and check the response
+    response = self._check(self._fetch(url, headers, body))
+
+    # Return the result from the response envelope
+    return response['result']
+</pre>
+            </div>
+          </div><br class="example-break">
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="usquarterexample" name="usquarterexample"></a>6.2.2. Example: US State Quarters
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            <a class="xref" href="http://mql.freebaseapps.com/ch06.html#login.py" title="Example 6.1. metaweb.py: the login service">Example 6.1</a> and <a class="xref" href="http://mql.freebaseapps.com/ch06.html#write.py" title="Example 6.2. metaweb.py: invoking the mqlwrite service">Example 6.2</a> are helpful methods, but they are just utilities, not real-world examples of how you might write to Metaweb. For the sake of example, let's suppose that you are a coin collector and you think that <span class="emphasis"><em>freebase.com</em></span> should include information about each of the coins issued by the US Mint under its 50 State Quarters program. First, visit the <a class="ulink" href="http://www.usmint.gov/mint_programs/50sq_program/index.cfm?action=schedule">US Mint's website</a> to find out when each state quarter was released, how many were minted for each state, and when each state became a state.
+          </p>
+          <p>
+            Next, create a Metaweb type to model this data. Login to <span class="emphasis"><em>sandbox.freebase.com</em></span> and create a new type named "US State Quarter" in your default domain. For our example, we'll use the type id <code class="literal">/user/docs/default_domain/us_state_quarter</code>.
+          </p>
+          <p>
+            Next, give your type four properties:
+          </p>
+          <div class="itemizedlist">
+            <ul>
+              <li>
+                <p>
+                  A property named "State", of <code class="literal">/location/us_state</code> to specify the state with which the quarter is associated.
+                </p>
+              </li>
+              <li>
+                <p>
+                  A property named "Release", of <code class="literal">/type/datetime</code>, to specify the date on which the quarter was released into circulation.
+                </p>
+              </li>
+              <li>
+                <p>
+                  A property named "Statehood", of <code class="literal">/type/datetime</code> to specify when the state gained statehood.
+                </p>
+              </li>
+              <li>
+                <p>
+                  A property named "Mintage", of <code class="literal">/type/int</code>, to specify how many quarters were minted.
+                </p>
+              </li>
+            </ul>
+          </div>
+          <p>
+            Optionally, make each of these properties unique by clicking the "Restrict to one value" checkbox.
+          </p>
+          <p>
+            Next, you need to get your data into manageable form. Extract data from the US Mint site, and arrange it in a plain text file named <code class="literal">quarters.txt</code> that looks like the following:
+          </p>
+          <pre class="programlisting">Delaware,1999-01-04,1787-12-07,774824000
+Pennsylvania,1999-03-08,1787-12-12,707332000
+New Jersey,1999-05-17,1787-12-18,662228000
+Georgia,1999-07-19,1788-01-02,939932000
+Connecticut,1999-10-12,1788-01-09,1346624000
+Massachusetts,2000-01-03,1788-02-06,1163784000
+</pre>
+          <p>
+            Each line in this file is the data for a single quarter. Fields are separated by commas. The first field is the name of the state. The second and third fields are the release date and statehood date for that state. And the fourth field is the mintage for that state quarter.
+          </p>
+          <p>
+            With our type created, and the data in this format, we can now write a simple script to upload the data to <span class="emphasis"><em>sandbox.freebase.com</em></span>. <a class="xref" href="http://mql.freebaseapps.com/ch06.html#quarters.py" title="Example 6.3. quarters.py: writing a data set to Metaweb">Example 6.3</a> shows how to use the <span class="emphasis"><em>metaweb.py</em></span> module to do this. Note that you need to insert your own Freebase username and password into the script to make it work for you.
+          </p>
+          <div class="example">
+            <a id="quarters.py" name="quarters.py"></a>
+            <p class="title">
+              <b>Example 6.3. quarters.py: writing a data set to Metaweb</b>
+            </p>
+            <div class="example-contents">
+              <pre class="programlisting">import metaweb         # Use the metaweb module
+
+USERNAME = 'username'  # Put your Freebase username and password here
+PASSWORD = 'secret'
+
+# The ID for our US State Quarter type depends on our username
+TYPEID = '/user/' + USERNAME + '/default_domain/us_state_quarter'
+
+# Create a metaweb.Session object to interact with the sandbox server
+sandbox = metaweb.Session("sandbox.freebase.com")
+
+# Make sure we can log in before we go any further
+sandbox.login(USERNAME, PASSWORD)
+
+# We will be creating multiple quarters in a single MQL query.
+# We start with an empty array and add MQL writes to it in the loop below
+query = []
+
+f = open("quarters.txt", "r")                  # Open our file of quarter data
+for line in f:                                 # Loop through lines of the file
+    # Break each line into fields
+    fields = line.strip().split(',')           
+
+    # This query creates a single quarter
+    q = {'create':'unless_exists',             # Create a new object
+         'id':None,                            # And return its id
+         'type':["/common/topic", TYPEID],     # Make it a topic and a quarter
+         'name': fields[0] + ' State Quarter', # The object's name
+         'state': {'connect':'update',         # Connect to...
+                   'type':'/location/us_state',  # a US State object...
+                   'name':fields[0]},            # with this name.
+         'release': fields[1],                 # Release date
+         'statehood': fields[2],               # Statehood date
+         'mintage': int(fields[3])}            # How many minted
+
+    # Add this write to the array of writes
+    query.append(q);
+
+f.close()                                      # Close the data file
+
+# Now send our one big query to Metaweb and get the result
+result = sandbox.write(query)
+
+# Display the id of the Metaweb object for each state
+for r in result:
+    print "%s %s: %s" % (r['create'], r['state']['name'], r['id'])
+</pre>
+            </div>
+          </div><br class="example-break">
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="multiplemqlwrite" name="multiplemqlwrite"></a>6.2.3. Sending Multiple Queries to mqlwrite
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            As we saw in <a class="xref" href="http://mql.freebaseapps.com/ch05.html" title="Chapter 5. The MQL Write Grammar">Chapter 5</a>, the MQL write grammar allows multiple independent writes to be specified in a single query as elements of a JSON array, and we took advantage of this fact in <a class="xref" href="http://mql.freebaseapps.com/ch06.html#quarters.py" title="Example 6.3. quarters.py: writing a data set to Metaweb">Example 6.3</a> to create all of our US State Quarter objects in a single invocation of <span class="emphasis"><em>mqlwrite</em></span>.
+          </p>
+          <p>
+            Like <span class="emphasis"><em>mqlread</em></span>, the <span class="emphasis"><em>mqlwrite</em></span> service also allows multiple queries to be submitted using the <code class="literal">queries</code> parameter instead of the <code class="literal">query</code> parameter. To use the <code class="literal">queries</code> parameter, place one or more regular query envelope objects inside a new "outer envelope" object. The property names used in the outer envelope are arbitrary and are re-used in the response envelope. This is exactly the same for <span class="emphasis"><em>mqlwrite</em></span> as it is for <span class="emphasis"><em>mqlread</em></span>.
+          </p>
+          <p>
+            Suppose we want to create two objects in a single call to <span class="emphasis"><em>mqlwrite</em></span>. Here are two envelopes that can accomplish that:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    2 Writes in 1 Query
+                  </th>
+                  <th>
+                    2 Queries in 1 Envelope
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "query":[{
+    "create":"unless_exists",
+    "name":"my test object #1"
+  },{
+    "create":"unless_exists",
+    "name":"my test object #2"
+  }]
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "q1":{
+    "query":{
+      "create":"unless_exists",
+      "name":"my test object #3"
+    }
+  },
+  "q2":{
+    "query":{
+      "create":"unless_exists",
+      "name":"my test object #4"
+    }
+  }
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            When you include multiple writes in a single query, the writes are executed atomically: they all succeed or they all fail. As a result, they are not allowed to depend on each other, and there is no way to tell what order they are executed in.
+          </p>
+          <p>
+            If you submit multiple queries using the <code class="literal">queries</code> parameter, they are not atomic. Each one succeeds or fails on its own – the outer response envelope includes separate response envelopes for each query, and each of these inner response envelopes has its own <code class="literal">code</code> property to indicate the success or failure of the query. Note, however, that queries are unordered, and there is no guarantee that they will be executed in the order in which they are written. Since execution order cannot be predicted, queries passed to in the same invocation of <span class="emphasis"><em>mqlwrite</em></span> should not depend on each other.
+          </p>
+          <p>
+            Note that the <code class="literal">read()</code> method of <a class="xref" href="http://mql.freebaseapps.com/ch04.html#metaweb1.py" title="Example 4.15. metaweb.py: a Python module for Metaweb">Example 4.15</a> accepts multiple read queries and uses the <code class="literal">queries</code> parameter to <span class="emphasis"><em>mqlread</em></span>. The <code class="literal">write()</code> method of <a class="xref" href="http://mql.freebaseapps.com/ch06.html#write.py" title="Example 6.2. metaweb.py: invoking the mqlwrite service">Example 6.2</a>, allows only a single write query and uses the <code class="literal">query</code> parameter instead. It would not be difficult, however, to modify the <code class="literal">write()</code> method to use the <code class="literal">queries</code> parameter instead.
+          </p>
+          <div class="sidebar">
+            <p class="title">
+              <b>Avoid Large Multiple Writes</b>
+            </p>
+            <p>
+              Creating 50 objects in one request, as we did in the state quarters example is a reasonable, if uncommon, thing to do. But attempting 500 writes in one <span class="emphasis"><em>mqlwrite</em></span> invocation (either 500 writes in one MQL query or 500 queries in one envelope) exposes your application to a higher risk of service timeouts and is not recommended. In practice, it is more common to make one write per request, even when working with large datasets. In general, keeping your write requests as small and simple as possible will make it easier to debug and diagnose any problems that arise.
+            </p>
+          </div>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="id2972357" name="id2972357"></a>6.2.4. Mqlwrite Envelope Parameters
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            Each query envelope passed to <span class="emphasis"><em>mqlwrite</em></span> includes a property named <code class="literal">query</code> to specify the MQL query to be executed. Any other properties within the envelope object are known as envelope parameters and provide additional input to <span class="emphasis"><em>mqlwrite</em></span>. At the time of this writing <sup>[<a class="footnote" href="http://mql.freebaseapps.com/ch06#ftn.id2972380" id="id2972380" name="id2972380">24</a>]</sup>, the only supported envelope parameter for <span class="emphasis"><em>mqlwrite</em></span> is <code class="literal">use_permission_of</code>.
+          </p>
+          <div class="sect3" lang="en" xml:lang="en">
+            <div class="titlepage">
+              <div>
+                <div>
+                  <h4 class="title">
+                    <a id="use_permission_of" name="use_permission_of"></a>6.2.4.1. Setting Write Permission for New Objects
+                  </h4>
+                </div>
+              </div>
+            </div>
+            <p>
+              By default, new objects created with MQL write queries are given a <code class="literal">permission</code> property of <code class="literal">/boot/all_permission</code>, which makes them modifiable by any Metaweb user. Once an object has been created, it is not possible to alter its <code class="literal">permission</code> property, so if you want to create an object with restricted write permissions, you must do so when the object is created.
+            </p>
+            <p>
+              The <code class="literal">use_permission_of</code> envelope parameter does exactly this. The value of this parameter should be an object id. The permission of the specified object is reused and becomes the permission of any objects created by the query. Note that this parameter is <span class="emphasis"><em>not</em></span> named <code class="literal">use_permission</code> and its value should <span class="emphasis"><em>not</em></span> be the id of a <code class="literal">/type/permission</code> object. Instead, specify the id of an object (typically a user, domain or type) whose permission you want to copy.
+            </p>
+            <p>
+              As an example, recall from <a class="xref" href="http://mql.freebaseapps.com/ch05.html" title="Chapter 5. The MQL Write Grammar">Chapter 5</a> that we created a namespace <code class="literal">/user/docs/music/notes</code> to hold names for instances of our <code class="literal">/user/docs/music/note</code> type. We created that namespace with a MQL write query, and submitted the query using the query editor on the sandbox server. The query editor didn't set the <code class="literal">use_permission_of</code> parameter, and we ended up with a globally writeable namespace. It is more likely that we would want that namespace to be restricted to the same set of users that have permission to modify the <code class="literal">/user/docs/music</code> domain, so we should have submitted the query using this envelope:
+            </p>
+            <pre class="programlisting">{
+  "query": {
+    "id":"/user/docs/music",
+    "/type/namespace/keys": {
+      "value":"notes",
+      "namespace": {
+        "create":"unless_connected",
+        "type":"/type/namespace",
+        "unique":false
+      }
+    }
+  },
+  "use_permission_of":"/user/docs/music"
+}
+</pre>
+            <p>
+              The <span class="emphasis"><em>metaweb.py</em></span> module uses Python's named arguments for specifying envelope parameters, and we can execute the write above with code like this:
+            </p>
+            <pre class="programlisting">import metaweb
+
+username = "username"
+password = "secret"
+domain = "/user/" + username + "/music"
+
+sandbox = metaweb.Session("sandbox.freebase.com", use_permission_of=domain)
+sandbox.login(username, password)
+sandbox.write({"id":domain,
+               "/type/namespace/keys": {
+                 "value":"notes",
+                 "namespace": { "create":"unless_connected",
+                                "type":"/type/namespace",
+                                "unique":False }}})
+</pre>
+          </div>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="id2972514" name="id2972514"></a>6.2.5. The X-Metaweb-Request Header
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            The Metaweb <span class="emphasis"><em>mqlwrite</em></span> service (and also the <span class="emphasis"><em>upload</em></span> service documented later in this chapter) require a custom HTTP request header, named <code class="literal">X-Metaweb-Request</code> to be present in all requests. The value of the header is ignored, but if the header is not present in the request, the request will not be processed.
+          </p>
+          <p>
+            The requirement that the custom header be present is a security measure to prevent cross-site scripting (XSS) attacks. As a practical matter, it means that the <span class="emphasis"><em>mqlwrite</em></span> and <span class="emphasis"><em>upload</em></span> services cannot be invoked via HTML form submission, since there is no way to tell a web browser to add a custom header like this when POSTing a form.
+          </p>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="id2972569" name="id2972569"></a>6.2.6. Caching: mwLastWriteTime and Touch
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            For efficiency, Metaweb servers cache query results. Suppose you issue a read query and get a result. Then, another Metaweb user performs a write that alters the data you queried. If you re-issue your query, you are likely to get the same results (now cached) that you got the last time. After some time, the cached result will time out, and you'll see the new data written by the other user, but this will not happen right away.
+          </p>
+          <p>
+            If you're mixing reads and writes yourself, however, you always want your read queries to return the data you've just written, of course. Metaweb uses a cookie-based scheme to ensure that this happens. Any time you do a write with <span class="emphasis"><em>mqlread</em></span> (or <span class="emphasis"><em>upload</em></span>), the service returns a <code class="literal">mwLastWriteTime</code> cookie. Your web browser (or client code) then presents this cookie when it makes any subsequent read requests. This tells the <span class="emphasis"><em>mqlread</em></span> service that it may not return any cached result older than the most recent write you've done. Your results may not arrive as quickly, but they will be consistent with the writes you've performed.
+          </p>
+          <p>
+            If you do your reads and writes using the <span class="emphasis"><em>freebase.com</em></span> client, this cache management is invisible to you because your web browser handles cookies automatically. Similarly, the <span class="emphasis"><em>metaweb.py</em></span> module developed in this chapter and <a class="xref" href="http://mql.freebaseapps.com/ch04.html" title="Chapter 4. Metaweb Read Services">Chapter 4</a> manages cookies automatically in the <code class="literal">_http</code> utility method, and the results returned by the <code class="literal">read()</code> method will be consistent with any previous writes made with the <code class="literal">write()</code> method.
+          </p>
+          <p>
+            If you develop your own library for working with <span class="emphasis"><em>mqlread</em></span> and <span class="emphasis"><em>mqlwrite</em></span>, you'll need to be aware of this caching issue and handle this <code class="literal">mwLastWriteTime</code> cookie appropriately.
+          </p>
+          <p>
+            Sometimes automatic cookie management is not enough to get proper caching behavior. Suppose you run one script to perform some writes, and then run another script to do some reads. Unless you saved the contents of cookie jar after doing the writes in the first script, and initialized the cookie jar of the second script from the saved state before doing the reads, you may get cached results that do not include the newly written data. Even trickier is the case where you do writes in the client (adding a property to a type, for example) and then do reads in a script. Unless you can make your script share the cookies of your web browser, you're likely to run into trouble. Another possible source of difficulty is when you perform reads in your web browser to verify the success of writes you've done in a script. If you check the state of an object with your web browser, and then run a script to modify that object, and then check the object again in your browser, you may not see the modification you've just made.
+          </p>
+          <p>
+            To solve these problems you need a way to obtain a current <code class="literal">mwLastWriteTime</code> cookie. The <span class="emphasis"><em>touch</em></span> service does just that. If you make an HTTP GET request to <span class="emphasis"><em>/api/service/touch</em></span>, the Metaweb server will send you fresh <code class="literal">mwLastWriteTime</code> cookie that allows any subsequent reads to see the current state of the database. At the time of this writing <sup>[<a class="footnote" href="http://mql.freebaseapps.com/ch06#ftn.id2972732" id="id2972732" name="id2972732">25</a>]</sup>, you can do this in the <span class="emphasis"><em>freebase.com</em></span> client by typing <span class="bold"><strong>F8</strong></span> to open the "Dev Tools" box at the bottom of the web page. Once you've done that, scroll to the bottom and click the "Refresh cache" link that has appeared. You can then type <span class="bold"><strong>F8</strong></span> again to remove the Dev Tools.
+          </p>
+          <p>
+            <a class="xref" href="http://mql.freebaseapps.com/ch06.html#touch.py" title="Example 6.4. metaweb.py: invoking the touch service">Example 6.4</a> shows how to invoke the <span class="emphasis"><em>touch</em></span> service in Python. It defines a simple <code class="literal">touch()</code> method to be added to the <code class="literal">metaweb.Session</code> class of <a class="xref" href="http://mql.freebaseapps.com/ch04.html#metaweb1.py" title="Example 4.15. metaweb.py: a Python module for Metaweb">Example 4.15</a>:
+          </p>
+          <div class="example">
+            <a id="touch.py" name="touch.py"></a>
+            <p class="title">
+              <b>Example 6.4. metaweb.py: invoking the touch service</b>
+            </p>
+            <div class="example-contents">
+              <pre class="programlisting">def touch(self):
+    """
+    Defeat caching by requesting a current mwLastWriteTime cookie.
+    This method returns nothing.
+    """
+    self._fetch("https://" + self.host + TOUCH)
+</pre>
+            </div>
+          </div><br class="example-break">
+          <p>
+            Despite its name, the value of the <code class="literal">mwLastWriteTime</code> cookie is not just a timestamp: it is an opaque value that contains cache information other than just the last write time. For this reason, it is not possible to simply create your own value for the cookie – you have to obtain a valid value from <span class="emphasis"><em>mqlwrite</em></span>, <span class="emphasis"><em>upload</em></span>, or <span class="emphasis"><em>touch</em></span>.
+          </p>
+        </div>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title">
+                <a id="dataimport" name="dataimport"></a>6.3. Uploading Data to Metaweb
+              </h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          The unique feature of Metaweb is the way that it stores relationships between objects. But, like any database, it can also store large chunks of data, such as long HTML documents or binary image files. In <a class="xref" href="http://mql.freebaseapps.com/ch04.html" title="Chapter 4. Metaweb Read Services">Chapter 4</a> we learned about the <span class="emphasis"><em>trans</em></span> service for retrieving content. Here, we'll learn how to upload content to be stored in Metaweb. The service for uploading content is named <span class="emphasis"><em>upload</em></span>, and has the URL path <code class="literal">/api/service/upload</code>. The <span class="emphasis"><em>upload</em></span> service responds only to HTTP POST requests. The data to be uploaded is passed in the body of the request. The MIME type of the content, as well as the encoding of textual content is specified in the HTTP <code class="literal">Content-Type</code> request header.
+        </p>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="dataimportutility" name="dataimportutility"></a>6.3.1. An Upload Utility
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            <a class="xref" href="http://mql.freebaseapps.com/ch06.html#upload.py" title="Example 6.5. metaweb.py: uploading content to Metaweb">Example 6.5</a> shows an <code class="literal">upload()</code> method for our <span class="emphasis"><em>metaweb.py</em></span> module. It expects two arguments: a string of content (Python strings can be binary data or textual data) and the MIME type for the content. <code class="literal">upload()</code> creates a new <code class="literal">/type/content</code> object to hold your content and returns the id (in the <code class="literal">/guid</code> pseudo-namespace) of that object to you. This guid can be used to retrieve the content with the <span class="emphasis"><em>/api/trans/raw</em></span> service (see <a class="xref" href="http://mql.freebaseapps.com/ch04.html" title="Chapter 4. Metaweb Read Services">Chapter 4</a>).
+          </p>
+          <div class="sidebar">
+            <p class="title">
+              <b>No Duplicates</b>
+            </p>
+            <p>
+              The <span class="emphasis"><em>upload</em></span> service does not always create a new <code class="literal">/type/content</code> object for the content you upload. All content is checksummed when it is uploaded, and these checksums are used to detect duplicate uploads. If the content you are uploading already exists in the Metaweb content store, the existing <code class="literal">/type/content</code> object is used. The <code class="literal">blob_id</code> property of <code class="literal">/type/content</code> holds the checksum value.
+            </p>
+          </div>
+          <div class="example">
+            <a id="upload.py" name="upload.py"></a>
+            <p class="title">
+              <b>Example 6.5. metaweb.py: uploading content to Metaweb</b>
+            </p>
+            <div class="example-contents">
+              <pre class="programlisting">def upload(self, content, type):
+    """
+    Upload the specified content (and give it the specified type).
+
+    Return the guid of the /type/content object that represents it.
+    The returned guid can be used to retrieve the content with 
+    /api/trans/raw.
+    """
+
+    # This is the URL we POST content to
+    url = 'https://%s%s'%(self.host, UPLOAD)
+
+    # These are the HTTP headers
+    headers = {
+        'Content-Type': type,
+        'X-Metaweb-Request': 'True'
+        }
+
+    # POST the request, parse the response, check for success
+    # This will raise an exception on failure
+    response = self._check(self._fetch(url, headers, content))
+
+    # Return the id of the uploaded conent
+    return response['result']['id']
+</pre>
+            </div>
+          </div><br class="example-break">
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="usquarterimportexample" name="usquarterimportexample"></a>6.3.2. Examples: Uploading Images of State Quarters
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            In order to demonstrate the <code class="literal">upload()</code> method of <a class="xref" href="http://mql.freebaseapps.com/ch06.html#upload.py" title="Example 6.5. metaweb.py: uploading content to Metaweb">Example 6.5</a> let's continue with our US State Quarter example. The US Mint has images of each of the state quarters on its website. Let's upload those images to <span class="emphasis"><em>sandbox.freebase.com</em></span>, and make them visible through the <code class="literal">/common/topic/image</code> property of each quarter object. <a class="xref" href="http://mql.freebaseapps.com/ch06.html#quarterpix.py" title="Example 6.6. quarterpix.py: uploading images to Metaweb">Example 6.6</a> shows how to do this.
+          </p>
+          <p>
+            In order to understand this code, you have to know that the <span class="emphasis"><em>upload</em></span> service handles images specially. When you upload images, the <code class="literal">/type/content</code> object is also given the type <code class="literal">/common/image</code> with various properties filled out. Because your uploaded <code class="literal">/type/content</code> is <span class="emphasis"><em>co-typed</em></span> as <code class="literal">/common/image</code>, you can link directly to image content from <code class="literal">/common/topic/image</code>.
+          </p>
+          <div class="example">
+            <a id="quarterpix.py" name="quarterpix.py"></a>
+            <p class="title">
+              <b>Example 6.6. quarterpix.py: uploading images to Metaweb</b>
+            </p>
+            <div class="example-contents">
+              <pre class="programlisting">import metaweb             # Our metaweb utilities
+import urllib2             # For downloading images from the mint server
+
+USERNAME = 'username'      # Put your Freebase username and password here
+PASSWORD = 'secret'
+
+# The ID for our US State Quarter type depends on our username
+TYPEID = '/user/' + USERNAME + '/default_domain/us_state_quarter'
+
+# Create a metaweb.Session object to interact with the sandbox server
+sandbox = metaweb.Session("sandbox.freebase.com")
+
+# Make sure we can log in before we go any further
+sandbox.login(USERNAME, PASSWORD)
+
+# All the images files are beneath this URL
+imagedir = 'http://www.usmint.gov/images/mint_programs/50sq_program/states/'
+
+# This dictionary maps state name to image name.
+images = { 'Delaware': 'DE_winner.gif',
+           'Pennsylvania': 'PA_winner.gif',
+           'New Jersey': 'NJ_winner.gif',
+           'Georgia': 'GA_winner.gif',
+           'Connecticut': 'CT_winner.gif',
+           'Massachusetts': 'MA_winner.gif'}
+
+# Loop through the states
+for state,filename in images.items():
+    # First, download the image from the Mint's website
+    image = urllib2.urlopen(imagedir + filename)
+    type = image.info()['Content-Type']
+    content = image.read()
+
+    # Now upload it to Metaweb
+    id = sandbox.upload(content, type)
+
+    # Define a write query to link the quarter object to the uploaded image
+    query = { 'type': TYPEID,
+              'state':state,
+              '/common/topic/image': { 'id':id, 'connect':'insert' }}
+
+    # Submit the query and get the result
+    result = sandbox.write(query)
+
+    # Output the result
+    print "%s: %s %s" %(state, result['/common/topic/image']['connect'], id)
+</pre>
+            </div>
+          </div><br class="example-break">
+          <p>
+            Once you have run the code in <a class="xref" href="http://mql.freebaseapps.com/ch06.html#quarterpix.py" title="Example 6.6. quarterpix.py: uploading images to Metaweb">Example 6.6</a>, use the <span class="emphasis"><em>freebase.com</em></span> client on the sandbox server to view your state quarter objects (refreshing the cache if necessary). You'll see that there are now images on the page.
+          </p>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="documentupload" name="documentupload"></a>6.3.3. Uploading Documents
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            It is fairly easy to upload an image and make it visible to users of <span class="emphasis"><em>freebase.com</em></span>. It is a little trickier to do the same for textual content. When you upload a document, a <code class="literal">/type/content</code> object is created for that document. This allows the content to be retrieved with <span class="emphasis"><em>/api/trans/raw</em></span>, but it doesn't allow it to be viewed in any natural way in the client. To accomplish that, you must create a <code class="literal">/common/document</code> object to reference the content, and (optionally) a <code class="literal">/common/topic</code> object to reference the document. <a class="xref" href="http://mql.freebaseapps.com/ch06.html#uploaddoc.py" title="Example 6.7. uploaddoc.py: uploading HTML documents to Metaweb">Example 6.7</a> shows how you can do this.
+          </p>
+          <div class="example">
+            <a id="uploaddoc.py" name="uploaddoc.py"></a>
+            <p class="title">
+              <b>Example 6.7. uploaddoc.py: uploading HTML documents to Metaweb</b>
+            </p>
+            <div class="example-contents">
+              <pre class="programlisting">import sys, re, metaweb 
+
+# Read the content of the file specified on the command line
+# It must be an HTML file with a &lt;title&gt;
+filename = sys.argv[1]
+try:
+    f = open(filename)
+    doc = f.read()
+    f.close()
+except Exception, e:
+    sys.exit(e)
+
+# Search through the document for a title
+try: title = re.search("(?i)&lt;title&gt;(.*)&lt;/title&gt;", doc).group(1)
+except: sys.exit("Document has no title")
+    
+# Log in to the sandbox server. 
+USERNAME = 'username'    # Put your own username and password here
+PASSWORD = 'secret'
+sandbox = metaweb.Session("sandbox.freebase.com");
+sandbox.login(USERNAME, PASSWORD)
+
+# Upload the document content to Metaweb.
+# Note that we hardcode the text/html content type.
+content_id = sandbox.upload(doc, "text/html")
+
+# Submit a MQL write query to create a /common/topic and /common/document
+# for the uploaded content
+result = sandbox.write({'create':'unless_exists',
+                        'type':'/common/topic',
+                        'id':None,
+                        'name':title,
+                        'article' : { 'create':'unless_exists',
+                                      'type':'/common/document',
+                                      'id':None,
+                                      'content':content_id }})
+
+# Tell the user what we did
+print "Uploaded %s: %s\n\tcontent: %s\n\tdocument: %s %s\n\ttopic: %s %s" % (
+    filename, title, content_id,
+    result['article']['create'], result['article']['id'], 
+    result['create'], result['id'])
+</pre>
+            </div>
+          </div><br class="example-break">
+          <p>
+            This Python program expects the name of an HTML file as a command-line argument. It reads the file and determines the document title by searching (using a regular expression) for a <code class="literal">&lt;title&gt;</code> tag. It uploads the document text with the <code class="literal">upload()</code> method of <a class="xref" href="http://mql.freebaseapps.com/ch06.html#upload.py" title="Example 6.5. metaweb.py: uploading content to Metaweb">Example 6.5</a>. Then it submits a MQL write query to create a <code class="literal">/common/topic</code> that refers to a <code class="literal">/common/document</code> that refers to the uploaded content. It uses the document title as the name of <code class="literal">/common/topic</code> object.
+          </p>
+        </div>
+      </div>
+      <div class="footnotes">
+        <div class="footnote">
+          <p>
+            <sup>[<a class="para" href="http://mql.freebaseapps.com/ch06#id2972380" id="ftn.id2972380" name="ftn.id2972380">24</a>]</sup> September, 2008
+          </p>
+        </div>
+        <div class="footnote">
+          <p>
+            <sup>[<a class="para" href="http://mql.freebaseapps.com/ch06#id2972732" id="ftn.id2972732" name="ftn.id2972732">25</a>]</sup> September, 2008
+          </p>
+        </div>
+      </div>
+    </div>
+    
+  
+</body></html>

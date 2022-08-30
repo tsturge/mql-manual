@@ -1,0 +1,271 @@
+
+<!-- saved from url=(0032)http://mql.freebaseapps.com/ch01 -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <title>
+        MQL Reference Guide: 
+  Chapter 1. Introduction
+      </title>
+      <link href="./MQL Reference Guide  Chapter 1. Introduction_files/stylesheet.css" rel="stylesheet" type="text/css">
+              
+  
+  <link href="http://mql.freebaseapps.com/index" rel="home" title="Table of Contents">
+  <link href="http://mql.freebaseapps.com/index" rel="up" title="Table of Contents">
+  <link href="http://mql.freebaseapps.com/ch02" rel="next" title="Chapter 2. Metaweb Architecture">
+    </head>
+    <body>
+      
+  <div id="header">
+    <div id="nav">
+      Chapter 1. Introduction        
+      
+      <a href="http://mql.freebaseapps.com/index">◁ previous</a> 
+      <a href="http://mql.freebaseapps.com/index">△ contents</a> 
+      <a href="http://mql.freebaseapps.com/ch02">next ▷</a>
+    </div>
+    
+    <div id="logo">
+      <a href="http://mql.freebaseapps.com/index" title="MQL Reference Guide contents"><img alt="MQL Reference Guide" border="0" height="18" width="258" src="./MQL Reference Guide  Chapter 1. Introduction_files/logo-mqlreference.png"></a>
+    </div>
+  </div>
+      
+  <div class="chapter" lang="en" xml:lang="en">
+    <div class="titlepage">
+      <div>
+        <div>
+          <h2 class="title">
+            <a id="intro" name="intro"></a>Chapter 1. Introduction
+          </h2>
+        </div>
+      </div>
+    </div>
+    <p>  
+
+      Freebase is a vast, free, open online database of structured knowledge, powered and maintained by Metaweb Technologies (<span class="emphasis"><em>metaweb.com</em></span>). If you visit the <span class="emphasis"><em>freebase.com</em></span> website, you'll find information about such diverse topics as popular music, movies, geography and genetics. <a class="xref" href="http://mql.freebaseapps.com/ch01.html#freebase_screenshot" title="Figure 1.1. Browsing knowledge at freebase.com">Figure 1.1</a> is a sample page from this site: <sup>[<a class="footnote" href="http://mql.freebaseapps.com/ch01#ftn.id2942312" id="id2942312" name="id2942312">1</a>]</sup> Users can access and contribute to Freebase at <span class="emphasis"><em><a class="ulink" href="http://www.freebase.com/">http://www.freebase.com</a></em></span>, or by using the API explained in this manual.
+    </p>
+    <div class="figure">
+      <a id="freebase_screenshot" name="freebase_screenshot"></a>
+      <p class="title">
+        <b>Figure 1.1. Browsing knowledge at freebase.com</b>
+      </p>
+      <div class="figure-contents">
+        <div>
+          <img alt="Browsing knowledge at freebase.com" width="100%" src="./MQL Reference Guide  Chapter 1. Introduction_files/thepolice.png">
+        </div>
+      </div>
+    </div><br class="figure-break">
+    <p>
+      This
+      manual teaches you how to write applications that interact with
+      Freebase. It assumes that you already know the "what" and "why" of
+      Freebase, and that you have visited the <a class="ulink" href="http://www.freebase.com/help/">Freebase Help Center</a>, viewed the <a class="ulink" href="http://www.freebase.com/help/tutorial/index.html">Freebase tutorial</a> and read the <a class="ulink" href="http://www.freebase.com/help/faq">Freebase FAQ</a>.
+    </p>
+    <div class="sidebar">
+      <p class="title">
+        <b>Metaweb and Freebase</b>
+      </p>
+      <p>
+        Metaweb
+        (the company) has developed Metaweb (the database and API). Freebase
+        (the open global structured knowledge base) is a high-profile public
+        instantiation of the Metaweb technology. This manual documents general
+        Metaweb services and APIs, and relies on Freebase for example data and
+        applications. The services and APIs are applicable beyond Freebase,
+        however, and you'll find that this manual uses the name "Metaweb" far
+        more than it does the name "Freebase".
+      </p>
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title">
+              <a id="apiintro" name="apiintro"></a>1.1. The Metaweb Query API
+            </h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        Metaweb
+        offers a powerful API for making programmatic queries. This allows you
+        to incorporate knowledge from the Freebase database into your own
+        applications and websites. Let's take this API for a spin. Type the
+        following URL into your web browser's location bar. (Type it all on a
+        single line: it is broken across two lines here to fit on the page.)
+      </p>
+      <pre class="programlisting">https://api.freebase.com/api/service/mqlread?query=
+{"query":{"type":"/music/artist","name":"The Police","album":[]}}
+</pre>
+      <p>
+        There
+        are a lot of braces, quote marks, colons and commas in that URL, but
+        remember that this is a programmatic API: the query is supposed to be
+        generated by a computer, not pecked out by human fingers! The query is
+        easier to understand if it is formatted like this:
+      </p>
+      <pre class="programlisting">{
+  "query": {
+    "type":"/music/artist",
+    "name":"The Police",
+    "album":[]
+  }
+}
+</pre>
+      <p>
+        Translated into English, this Metaweb query says:
+      </p>
+      <div class="blockquote">
+        <blockquote class="blockquote">
+          <p>
+            Find an object in the database whose type is "/music/artist" and whose name is "The Police". Then return its set of albums.
+          </p>
+        </blockquote>
+      </div>
+      <p>
+        If you got all the punctuation correct, the Metaweb server running at <span class="emphasis"><em>api.freebase.com</em></span> will return a plain-text response that looks something like this:
+      </p>
+      <pre class="programlisting">{
+  "status": "200 OK", 
+  "code": "/api/status/ok", 
+  "transaction_id":"cache;cache01.p01.sjc1:8101;2008-09-18T17:56:28Z;0029",
+  "result": {
+    "type": "/music/artist", 
+    "name": "The Police",
+    "album": [
+      "Outlandos d'Amour", 
+      "Reggatta de Blanc", 
+      "Zenyatta Mondatta", 
+      "Ghost in the Machine", 
+      "Synchronicity"
+    ]
+  }
+}
+</pre>
+      <p>
+        The
+        response has the same braces and quotes that the query did: they
+        provide the structure that makes this response easy to parse (for a
+        computer). This response contains status codes and then a property
+        "result". This <code class="literal">result</code> property of this response has the same structure as the <code class="literal">query</code> property of the query did, except that the empty parts have been filled in. Our query included the text:
+      </p>
+      <pre class="programlisting">"album":[]
+</pre>
+      <p>
+        In
+        the response, those empty square brackets have been filled in with a
+        long list of album names. (For brevity, many of albums have been
+        omitted in the result shown above.)
+      </p>
+      <p>
+        Making
+        queries from your web browser's location bar is interesting, but it
+        becomes much more interesting if we make the queries under programmatic
+        control. Imagine a script running on your own web server that sends
+        queries to Freebase and formats the results as HTML: this is a
+        Freebase-enabled web application. It might look like <a class="xref" href="http://mql.freebaseapps.com/ch01.html#albumlist" title="Figure 1.2. A Metaweb-enabled web application">Figure 1.2</a>.
+      </p>
+      <div class="figure">
+        <a id="albumlist" name="albumlist"></a>
+        <p class="title">
+          <b>Figure 1.2. A Metaweb-enabled web application</b>
+        </p>
+        <div class="figure-contents">
+          <div>
+            <img alt="A Metaweb-enabled web application" width="100%" src="./MQL Reference Guide  Chapter 1. Introduction_files/phpalbumlist.png">
+          </div>
+        </div>
+      </div><br class="figure-break">
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title">
+              <a id="aboutdocumentation" name="aboutdocumentation"></a>1.2. About this Manual
+            </h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        The
+        goal of this manual is to explain everything you need to know to create
+        Metaweb-enabled web applications like the one pictured in <a class="xref" href="http://mql.freebaseapps.com/ch01.html#albumlist" title="Figure 1.2. A Metaweb-enabled web application">Figure 1.2</a>.
+        We assume that you are a programmer who has some experience with
+        languages like PHP, Python, Perl and JavaScript, and that you
+        understand the basics of the HTTP protocol.
+      </p>
+      <p>
+        The chapters that follow are:
+      </p>
+      <div class="variablelist">
+        <dl>
+          <dt>
+            <span class="term"><a class="link" href="http://mql.freebaseapps.com/ch02.html" title="Chapter 2. Metaweb Architecture">Chapter 2: <span class="emphasis"><em>Metaweb Architecture</em></span></a></span>
+          </dt>
+          <dd>
+            <p>
+              This
+              chapter explains the Metaweb architecture, including a discussion of
+              Metaweb objects, values, types, domains, namespaces and access control.
+            </p>
+          </dd>
+          <dt>
+            <span class="term"><a class="link" href="http://mql.freebaseapps.com/ch03.html" title="Chapter 3. The Metaweb Query Language">Chapter 3: <span class="emphasis"><em>The Metaweb Query Language</em></span></a></span>
+          </dt>
+          <dd>
+            <p>
+              This
+              chapter explains the Metaweb Query Language (MQL) that is used to
+              express Metaweb queries. The syntax is quite a bit more powerful and
+              complex than what was shown in this introduction.
+            </p>
+          </dd>
+          <dt>
+            <span class="term"><a class="link" href="http://mql.freebaseapps.com/ch04.html" title="Chapter 4. Metaweb Read Services">Chapter 4: <span class="emphasis"><em>Metaweb Read Services</em></span></a></span>
+          </dt>
+          <dd>
+            <p>
+              This
+              chapter explains how to read data from Metaweb servers. It demonstrates
+              (with examples in a variety of scripting languages) how to submit MQL
+              queries to the <span class="emphasis"><em>mqlread</em></span> service, and how to interpret the response. It also demonstrates how to use the <span class="emphasis"><em>trans</em></span> service to download content (such as HTML articles or binary image data) from Metaweb.
+            </p>
+            <p>
+              This chapter includes the source code for the application that created <a class="xref" href="http://mql.freebaseapps.com/ch01.html#albumlist" title="Figure 1.2. A Metaweb-enabled web application">Figure 1.2</a>.
+            </p>
+          </dd>
+          <dt>
+            <span class="term"><a class="link" href="http://mql.freebaseapps.com/ch05.html" title="Chapter 5. The MQL Write Grammar">Chapter 5: <span class="emphasis"><em>The MQL Write Grammar</em></span></a></span>
+          </dt>
+          <dd>
+            <p>
+              This
+              chapter explains MQL syntax for writing to the Metaweb database. The
+              MQL write grammar resembles MQL for read queries, but is different in a
+              number of important ways.
+            </p>
+          </dd>
+          <dt>
+            <span class="term"><a class="link" href="http://mql.freebaseapps.com/ch06.html" title="Chapter 6. Metaweb Write Services">Chapter 6: <span class="emphasis"><em>Metaweb Write Services</em></span></a></span>
+          </dt>
+          <dd>
+            <p>
+              This chapter explains how to write to Metaweb servers. It demonstrates (with Python code) the <span class="emphasis"><em>mqlwrite</em></span> service for sending write queries to Metaweb, and the <span class="emphasis"><em>upload</em></span> service for uploading textual or binary content. In addition, it shows how to use the <span class="emphasis"><em>login</em></span> service, which is a necessary prerequisite for <span class="emphasis"><em>mqlwrite</em></span> and <span class="emphasis"><em>upload</em></span>.
+            </p>
+          </dd>
+        </dl>
+      </div>
+    </div>
+    <div class="footnotes">
+      <div class="footnote">
+        <p>
+          <sup>[<a class="para" href="http://mql.freebaseapps.com/ch01#id2942312" id="ftn.id2942312" name="ftn.id2942312">1</a>]</sup> The screenshot is of the URL <span class="emphasis"><em><a class="ulink" href="http://freebase.com/view/en/the_police">http://freebase.com/view/en/the_police</a></em></span> At
+          the time of this writing (September, 2008) the Freebase user interface
+          is still in flux, and you may find that this page looks different when
+          you visit it.
+        </p>
+      </div>
+    </div>
+  </div>
+    
+  
+</body></html>

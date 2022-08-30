@@ -1,0 +1,1576 @@
+
+<!-- saved from url=(0032)http://mql.freebaseapps.com/ch02 -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <title>
+        MQL Reference Guide: 
+  Chapter 2. Metaweb Architecture
+      </title>
+      <link href="./MQL Reference Guide  Chapter 2. Metaweb Architecture_files/stylesheet.css" rel="stylesheet" type="text/css">
+              
+  
+  <link href="http://mql.freebaseapps.com/index" rel="home" title="Table of Contents">
+  <link href="http://mql.freebaseapps.com/index" rel="up" title="Table of Contents">
+  <link href="http://mql.freebaseapps.com/ch01" rel="prev" title="Chapter 1. Introduction">
+  <link href="http://mql.freebaseapps.com/ch03" rel="next" title="Chapter 3. The Metaweb Query Language">
+    </head>
+    <body>
+      
+  <div id="header">
+    <div id="nav">
+      Chapter 2. Metaweb Architecture        
+      
+      <a href="http://mql.freebaseapps.com/ch01">◁ previous</a> 
+      <a href="http://mql.freebaseapps.com/index">△ contents</a> 
+      <a href="http://mql.freebaseapps.com/ch03">next ▷</a>
+    </div>
+    
+    <div id="logo">
+      <a href="http://mql.freebaseapps.com/index" title="MQL Reference Guide contents"><img alt="MQL Reference Guide" border="0" height="18" width="258" src="./MQL Reference Guide  Chapter 2. Metaweb Architecture_files/logo-mqlreference.png"></a>
+    </div>
+  </div>
+      
+  <div class="chapter" lang="en" xml:lang="en">
+    <div class="titlepage">
+      <div>
+        <div>
+          <h2 class="title">
+            <a id="objectmodel" name="objectmodel"></a>Chapter 2. Metaweb Architecture
+          </h2>
+        </div>
+      </div>
+    </div>
+    <p>
+      The database that underlies Metaweb is fundamentally different than the relational databases that you may be familiar with. Relational databases store data in the form of tables, but the Metaweb database stores data as a graph of nodes and relationships between those nodes. Relational databases use the SQL query language and accept queries and return results using a specialized network protocol. Metaweb uses the MQL query language and communicates via standard HTTP requests and responses. The bulk of this manual is devoted to explaining MQL and demonstrating its use with the <span class="emphasis"><em>mqlread</em></span> and <span class="emphasis"><em>mqlwrite</em></span> web services. But because Metaweb's underlying database technology is new and different, it will be helpful if you understand the fundamental architecture of Metaweb first. This chapter explains the graph-based representation of Metaweb data, then shows how the graph of nodes and relationships can be viewed as a collection of objects. It also covers a number of other important architectural details, explaining properties, types, domains, names, ids, namespaces and access control. If you find this chapter difficult, feel free to skip ahead and skim <a class="xref" href="http://mql.freebaseapps.com/ch03.html" title="Chapter 3. The Metaweb Query Language">Chapter 3</a> and <a class="xref" href="http://mql.freebaseapps.com/ch04.html" title="Chapter 4. Metaweb Read Services">Chapter 4</a> to get an overview of MQL and the <span class="emphasis"><em>mqlread</em></span> service. With that context you can return to this chapter to solidify your understanding of the Metaweb architecture.
+    </p>
+    <p>
+      In addition to the Metaweb graph database, Metaweb servers also implement a content store. The content store is responsible for storing chunks of binary data (in SQL these chunks are called BLOBs) and is tightly integrated with the graph database. Each chunk in the content store has a corresponding node in the graph, and metadata about the content (such as its MIME type) is stored as relationships in the graph. Interestingly, the SHA2 hashcode of a chunk is used as the key into the content store, which makes it possible to test whether the store contains a specific chunk without uploading that chunk, and also prevents duplication of entries in the content store. This chapter does not cover the content store; we'll learn how to download data from the content store in <a class="xref" href="http://mql.freebaseapps.com/ch04.html" title="Chapter 4. Metaweb Read Services">Chapter 4</a> and how to upload data to it in <a class="xref" href="http://mql.freebaseapps.com/ch06.html" title="Chapter 6. Metaweb Write Services">Chapter 6</a>.
+    </p>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title">
+              <a id="id2942817" name="id2942817"></a>2.1. Nodes and Relationships
+            </h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        When viewed at the lowest level, the Metaweb graph is a set of nodes and a set of links or relationships between those nodes. Each node has a unique identifier (so it can be named and referred to) and a record of when and by whom it was created. Other than the id, timestamp and creator, however, the nodes in the graph hold no information themselves. All the interesting data in the database is stored in the form of relationships between nodes (or between nodes and primitive values).
+      </p>
+      <p>
+        Graphs can be represented visually using circles to represent nodes and arrows between the circles to represent relationships. In this section, however, we will model the relationships in the Metaweb object store as a tuples of four pieces of data <sup>[<a class="footnote" href="http://mql.freebaseapps.com/ch02#ftn.id2942842" id="id2942842" name="id2942842">2</a>]</sup> and we will represent sets of these relationships in tabular form, where each row of a table specifies one tuple.
+      </p>
+      <p>
+        The table below, for example, represents information about The Police, their album Zenyatta Mondatta, and the song Driven to Tears on that album. The <span class="bold"><strong>From</strong></span> column identifies the node that is the subject of the relationship. This node could also be called the "source" node or the "left" node. The <span class="bold"><strong>Property</strong></span> column specifies the kind of relationship being described. (Notice that this complicates the visual representation of a Metaweb graph: each arrow in the diagram must be tagged with a property to specify what kind of relationship it represents.) The <span class="bold"><strong>To</strong></span> and <span class="bold"><strong>Value</strong></span> columns specify the object of the relationship. <span class="bold"><strong>To</strong></span> (which could also be called "target", "destination", or "right" specifies another node, and <span class="bold"><strong>Value</strong></span> specifies a primitive value such as a string of text, a number or a date. One or both of these columns may have a value, depending on the kind of relationship (the <span class="bold"><strong>Property</strong></span> column) being described.
+      </p>
+      <div class="informaltable">
+        <table border="1">
+          <colgroup>
+            <col>
+            <col>
+            <col>
+            <col>
+          </colgroup>
+          <thead>
+            <tr>
+              <th>
+                From
+              </th>
+              <th>
+                Property
+              </th>
+              <th>
+                To
+              </th>
+              <th>
+                Value
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                /en/the_police
+              </td>
+              <td>
+                /type/object/name
+              </td>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                The Police
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /en/zenyatta_mondatta
+              </td>
+              <td>
+                /type/object/name
+              </td>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                Zenyatta Mondatta
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /guid/1234
+              </td>
+              <td>
+                /type/object/name
+              </td>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                Driven to Tears
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /en/zenyatta_mondatta
+              </td>
+              <td>
+                /music/album/artist
+              </td>
+              <td>
+                /en/the_police
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                /guid/1234
+              </td>
+              <td>
+                /music/track/album
+              </td>
+              <td>
+                /en/zenyatta_mondatta
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                /guid/1234
+              </td>
+              <td>
+                /music/track/length
+              </td>
+              <td></td>
+              <td>
+                200.266
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        The first three rows of this table describe a <code class="literal">/type/object/name</code> relationship, which defines a human-readable name for a node. Thus, the node we've identified as <code class="literal">/en/the_police</code> has the name "The Police", and the node <code class="literal">/guid/1234</code> has the name "Driven to Tears". Notice that these rows have a value in the <span class="bold"><strong>To</strong></span> column as well as the <span class="bold"><strong>Value</strong></span> column, and that the <span class="bold"><strong>To</strong></span> column refers to the node identified as <code class="literal">/lang/en</code>. That node represents the English language. Human readable text in Metaweb is always tagged with the language in which it is written. Thus any relationship, such as <code class="literal">/type/object/name</code>, that expects a human-readable text value will refer to a language node in the <span class="bold"><strong>To</strong></span> column and will have a string of text in the <span class="bold"><strong>Value</strong></span> column.
+      </p>
+      <p>
+        The fourth row in the table specifies that <code class="literal">/en/zenyatta_mondatta</code> has the relationship <code class="literal">/music/album/artist</code> with <code class="literal">/en/the_police</code>. In English, we might say: "Zenyatta Mondatta is by The Police". The fifth row is similar. It specifies a <code class="literal">/music/track/album</code> relationship between two nodes. It says: "Driven to Tears appears on Zenyatta Mondatta". Finally, the sixth row specifies the <code class="literal">/music/track/length</code> of Driven to Tears. Note that this relationship is not a link between two nodes, but merely specifies a number in the <span class="bold"><strong>Value</strong></span> column.
+      </p>
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title">
+              <a id="id2943383" name="id2943383"></a>2.2. Properties
+            </h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        The <span class="bold"><strong>Property</strong></span> column of our relationship tables have specified relationships with names like <code class="literal">/type/object/name</code> and <code class="literal">/music/track/album</code>, and you may have wondered about the fact that these property identifiers look so much like node identifiers that appear in the <span class="bold"><strong>From</strong></span> and <span class="bold"><strong>To</strong></span> columns. One of the key features of Metaweb is that it does not pre-define the kinds of relationships that can exist between nodes. New properties, representing new kinds of relationships, can be defined at any time and by any user. What this means, of course, is that properties are themselves nodes in the Metaweb graph.
+      </p>
+      <p>
+        Since properties are nodes, they can appear in the <span class="bold"><strong>From</strong></span> column of a table of tuples, and can have relationships themselves. For example:
+      </p>
+      <div class="informaltable">
+        <table border="1">
+          <colgroup>
+            <col>
+            <col>
+            <col>
+            <col>
+          </colgroup>
+          <thead>
+            <tr>
+              <th>
+                From
+              </th>
+              <th>
+                Property
+              </th>
+              <th>
+                To
+              </th>
+              <th>
+                Value
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                /type/object/name
+              </td>
+              <td>
+                /type/object/name
+              </td>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                Name
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /music/album/artist
+              </td>
+              <td>
+                /type/object/name
+              </td>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                Artist
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /music/track/album
+              </td>
+              <td>
+                /type/object/name
+              </td>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                Appears On
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /music/album/artist
+              </td>
+              <td>
+                /type/property/unique
+              </td>
+              <td></td>
+              <td>
+                true
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /music/track/album
+              </td>
+              <td>
+                /type/property/unique
+              </td>
+              <td></td>
+              <td>
+                false
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        The first row in this table is interestingly self-referential. The <code class="literal">/type/object/name</code> property defines its own name as "Name". The second and third rows define names for the <code class="literal">/music/album/artist</code> and <code class="literal">/music/track/album</code> properties, and it is worth noting that the human-readable names of Metaweb nodes are not always the same as the last component of the node identifier.
+      </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="id2943569" name="id2943569"></a>2.2.1. Properties and Uniqueness
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          The fourth and fifth rows of the table above specify that <code class="literal">/music/album/artist</code> is a <span class="emphasis"><em>unique</em></span> property and that <code class="literal">/music/track/album</code> is not. Because <code class="literal">/music/album/artist</code> has a <code class="literal">/type/property/unique</code> property with value <code class="literal">true</code>, Metaweb will not allow any node to have more than one <code class="literal">/music/album/artist</code> property. The <code class="literal">/type/property/unique</code> property is another unique property: no node can have more than one <code class="literal">/type/property/unique</code> relationship.
+        </p>
+        <p>
+          On the other hand, <code class="literal">/music/track/album</code> has <code class="literal">/type/property/unique</code> set to <code class="literal">false</code> so Metaweb allows a node to have any number of <code class="literal">/music/track/album</code> properties (think of songs that are released as singles, then on LPs, and then again on compilation albums). Non-unique properties are common in Metaweb databases, and the group of nodes that are linked to a given node by the same property can be thought of as an unordered set of values.
+        </p>
+        <p>
+          By default, properties are not unique: that is, a property node that does not have a <code class="literal">/type/property/unique</code> property is treated as if it had a <code class="literal">/type/property/unique</code> property with the value <code class="literal">false</code>.
+        </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="id2943662" name="id2943662"></a>2.2.2. Properties and Direction
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          The Metaweb graph is a <span class="emphasis"><em>directed</em></span> graph: each of the relationships has a direction from the <span class="bold"><strong>From</strong></span> node to the <span class="bold"><strong>To</strong></span> node. On a circles-and-lines representation of the nodes and relationships, each of the lines has an arrowhead to indicate the direction of the relationship. Despite the directionality of the links between nodes, Metaweb can traverse those links both forward and backward when searching the database to find results that match a query.
+        </p>
+        <p>
+          For example, consider the relationship between albums and the tracks that appear on those albums. We saw above this is represented in the Metaweb graph as a directed link <span class="emphasis"><em>from</em></span> the track node <span class="emphasis"><em>to</em></span> the album node. If we ask "what album(s) does Driven to Tears appear on?", the Metaweb database engine searches for tuples that have Driven to Tears in the <span class="bold"><strong>From</strong></span> column and the <code class="literal">/music/track/album</code> property in the <span class="bold"><strong>Property</strong></span> column, and then reports the value of the <span class="bold"><strong>To</strong></span> column of any matches it finds.
+        </p>
+        <p>
+          But it is perfectly possible to write a MQL query that asks "what tracks appear on Zenyatta Mondatta?" (we'll see queries like this many times in <a class="xref" href="http://mql.freebaseapps.com/ch03.html" title="Chapter 3. The Metaweb Query Language">Chapter 3</a> and <a class="xref" href="http://mql.freebaseapps.com/ch04.html" title="Chapter 4. Metaweb Read Services">Chapter 4</a>). In this case, the database engine searches for tuples that have Zenyatta Mondatta in the <span class="bold"><strong>To</strong></span> column and <code class="literal">/music/track/album</code> in the <span class="bold"><strong>Property</strong></span> column and then reports the value of the <span class="bold"><strong>From</strong></span> column for any matches it finds.
+        </p>
+        <p>
+          Because Metaweb is so good at traversing links in either direction, we can usually consider those links to be bi-directional. In fact, properties can be defined to represent links in either direction. The <code class="literal">/music/track/album</code> property models the track-to-album link in its forward direction, and it is known as a "master property". But there is also a "reverse property" <code class="literal">/music/album/track</code> that represents the same relationship, traversed in the opposite direction. In typical music-related queries, this reverse property is more commonly used – it is the one that allows us to ask about the set of tracks that appear on an album.
+        </p>
+        <p>
+          A master property and its reverse are known as "reciprocal properties", and the distinction between master and reverse does not usually matter in your queries. We'll see more about reciprocal properties in <a class="xref" href="http://mql.freebaseapps.com/ch03.html#inverseproperty" title="3.4.4. Inverting a Property with !">Section 3.4.4</a>, <a class="xref" href="http://mql.freebaseapps.com/ch03.html#reciprocalprops" title="3.4.5.4. Reciprocal Properties">Section 3.4.5.4</a> and <a class="xref" href="http://mql.freebaseapps.com/ch05.html#reverseproperties" title="5.9. Reciprocal Properties">Section 5.9</a>. For now, we'll just note that the relationship between a property node and its reciprocal property node is defined in the Metaweb graph by the <code class="literal">/type/property/reverse_property</code> property <sup>[<a class="footnote" href="http://mql.freebaseapps.com/ch02#ftn.id2942268" id="id2942268" name="id2942268">3</a>]</sup>:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  From
+                </th>
+                <th>
+                  Property
+                </th>
+                <th>
+                  To
+                </th>
+                <th>
+                  Value
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  /music/track/album
+                </td>
+                <td>
+                  /type/property/reverse_property
+                </td>
+                <td>
+                  /music/album/track
+                </td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="id2944020" name="id2944020"></a>2.2.3. Properties and Meaning
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          Some properties are a rudimentary part of the Metaweb architecture and have a well-defined meaning that is enforced by the Metaweb implementation. <code class="literal">/type/object/name</code>, for example, defines a human-readable name for a node, and Metaweb enforces an important restriction: nodes can have multiple names, but only one name per language. (We'll learn more about the names of nodes later in this chapter). <code class="literal">/type/property/unique</code> is another property that is part of Metaweb's architecture: this property defines something fundamental about the behavior of another property, and Metaweb's behavior depends its value. In general, if a property id begins with <code class="literal">/type</code>, that is a good hint that it has architectural significance.
+        </p>
+        <p>
+          The vast majority of properties are not like this, however. The <code class="literal">/music/album/artist</code> property, for example, is not part of the Metaweb architecture at all – it was defined on <span class="emphasis"><em>freebase.com</em></span> to model knowledge about music. The Metaweb implementation knows nothing about this property, and its interpretation is ultimately up to the person who is setting or querying its value (or who is writing the application that sets or queries its value). The id <code class="literal">/music/album/artist</code> gives us a hint about how to interpret the property and that hint is reinforced by the fact that the property has "Artist" as its <code class="literal">/type/object/name</code>. We can even obtain explicit instructions about the interpretation of <code class="literal">/music/album/artist</code> by inspecting its <code class="literal">/freebase/documented_object/tip</code> property, whose value is "albums recorded primarily by this artist (direct credit or under a pseudonym, but not as part of a band)".
+        </p>
+        <p>
+          Another way to say this is that the <span class="emphasis"><em>meaning</em></span> of <code class="literal">/type/property/unique</code> is defined by the behavior of the Metaweb implementation, but that the meaning of <code class="literal">/music/album/artist</code> exists only in the minds of its users. As far as Metaweb is concerned, <code class="literal">/music/album/artist</code> is just another node in the graph.
+        </p>
+      </div>
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title">
+              <a id="namesandids" name="namesandids"></a>2.3. Names, Identifiers and Namespaces
+            </h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        In an example above, we used the identifier <code class="literal">/en/the_police</code> to refer to a node that has the <code class="literal">/type/object/name</code> "The Police". This section explains the important differences between names and identifiers.
+      </p>
+      <p>
+        The <code class="literal">/type/object/name</code> property defines a human-readable name for a node. The value of the property includes both the text and the language of the name. As we saw above:
+      </p>
+      <div class="informaltable">
+        <table border="1">
+          <colgroup>
+            <col>
+            <col>
+            <col>
+            <col>
+          </colgroup>
+          <thead>
+            <tr>
+              <th>
+                From
+              </th>
+              <th>
+                Property
+              </th>
+              <th>
+                To
+              </th>
+              <th>
+                Value
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                /en/the_police
+              </td>
+              <td>
+                /type/object/name
+              </td>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                The Police
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Nodes can have more than one name, but Metaweb enforces an important constraint: a node can have only one name in any given language. (Use <code class="literal">/common/topic/alias</code> to define any number of nicknames, in any language, for a node.) As an example, the following table shows hypothetical English, French and Spanish names (and aliases) for the <code class="literal">/lang/en</code> node:
+      </p>
+      <div class="informaltable">
+        <table border="1">
+          <colgroup>
+            <col>
+            <col>
+            <col>
+            <col>
+          </colgroup>
+          <thead>
+            <tr>
+              <th>
+                From
+              </th>
+              <th>
+                Property
+              </th>
+              <th>
+                To
+              </th>
+              <th>
+                Value
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                /type/object/name
+              </td>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                English
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                /type/object/name
+              </td>
+              <td>
+                /lang/fr
+              </td>
+              <td>
+                Anglais
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                /type/object/name
+              </td>
+              <td>
+                /lang/es
+              </td>
+              <td>
+                Ingles
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                /common/topic/alias
+              </td>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                American English
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                /common/topic/alias
+              </td>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                British English
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                /common/topic/alias
+              </td>
+              <td>
+                /lang/en
+              </td>
+              <td>
+                Canadian English
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Names are not unique and not expected to be: it is common for multiple nodes to have the same name. The nodes with ids <code class="literal">/lang/en</code>, <code class="literal">/en/english_people</code>, and <code class="literal">/authority/gnis/57724</code> represent a language, a nationality, and a town in Arkansas and all have the name "English".
+      </p>
+      <p>
+        When you ask Metaweb for the name of a node without specifying a language, it returns only the node's name in your preferred language, fostering the convenient illusion that the node has only a single name. Human-readable names exist for the convenience of the human users of Metaweb, and although they are treated specially by the Metaweb architecture, they are not really fundamental to that architecture.
+      </p>
+      <p>
+        Identifiers, on the other hand, are fundamental. Identifiers consist of three parts: the node that is identified, a namespace and a key within the namespace. The identifier <code class="literal">/en/the_police</code> identifies a node in the graph that represents the band The Police. It has namespace <code class="literal">/en</code> and key "the_police". The identifier <code class="literal">/type/object/name</code> identifies a property node with namespace <code class="literal">/type/object</code> and key "name". <code class="literal">/type/object</code> is itself an identifier, with namespace <code class="literal">/type</code> and key "object". We can also turn this around and say that the namespace <code class="literal">/lang</code> and key "en" combine to define the identifier <code class="literal">/lang/en</code>. We'll return to the notion of an identifier as a node, a namespace, and a key in <a class="xref" href="http://mql.freebaseapps.com/ch02.html#typekey" title="2.5.9. /type/key">Section 2.5.9</a>.
+      </p>
+      <p>
+        A key can be considered a "local name" within a namespace, and the key plus namespace pair can be called a "fully-qualified name" to distinguish it from a "human-readable name". Usually, however, the pair is simply called an identifier or id. As you have seen, Metaweb identifiers are typically written in "flat form" as strings that use a slash character to separate the namespace from key. This means that identifiers look something like Unix filenames or URLs. Identifiers are intended for use by developers and are often used in code, which is why they appear in code font in this manual.
+      </p>
+      <p>
+        The important thing about identifiers is that they are unique. Metaweb never allows a namespace to contain duplicate keys, which means that two nodes will never have the same identifier. A node can be associated with more than one namespace/key pair, but any given namespace and key can only be used once, and can only refer to a single node. Note that identifiers are not immutable: nodes can be given new identifiers, and identifiers can be altered so that they refer to new nodes.
+      </p>
+      <p>
+        Identifiers like <code class="literal">/en/the_police</code> are not human-readable names, but are comprehensible to technically-savvy English-speakers, like the readers of this manual. Many nodes in a Metaweb graph (and most nodes on <span class="emphasis"><em>freebase.com</em></span>) have identifiers of this kind. Those that don't can be referred to using identifiers in the namespace <code class="literal">/guid</code>. The key that follows <code class="literal">/guid</code> is a string of hexadecimal digits that serves as a globally-unique identifier (or "guid") for a node. The song "Driven to Tears" from the album Zenyatta Mondatta, for example has the identifier <code class="literal">/guid/9202a8c04000641f800000000129a87a</code> (we called it <code class="literal">/guid/1234</code> for brevity earlier in the chapter).
+      </p>
+      <p>
+        Every node in a Metaweb graph has a numeric guid. The guid uniquely identifies the node and is immutable – the guid of a node can never change. The guid is the fundamental identity of a Metaweb node, and at the implementation level, the tuples that define the Metaweb graph refer to nodes (in the <span class="bold"><strong>From</strong></span>, <span class="bold"><strong>Property</strong></span>, and <span class="bold"><strong>To</strong></span> columns) by their guids, not by the identifiers that we've shown in our tables.
+      </p>
+      <p>
+        Since the guid is the fundamental identity of a node, the identifier of a node is not fundamental. In fact, identifiers are defined by the <code class="literal">/type/object/key</code> property, much as names are defined by the <code class="literal">/type/object/name</code> property. Here, for example, are tuples that define the identifiers <code class="literal">/en/the_police</code> and <code class="literal">/en/zenyatta_mondatta</code>.
+      </p>
+      <div class="informaltable">
+        <table border="1">
+          <colgroup>
+            <col>
+            <col>
+            <col>
+            <col>
+          </colgroup>
+          <thead>
+            <tr>
+              <th>
+                From
+              </th>
+              <th>
+                Property
+              </th>
+              <th>
+                To
+              </th>
+              <th>
+                Value
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                /en/the_police
+              </td>
+              <td>
+                /type/object/key
+              </td>
+              <td>
+                /en
+              </td>
+              <td>
+                the_police
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /en/zenyatta_mondatta
+              </td>
+              <td>
+                /type/object/key
+              </td>
+              <td>
+                /en
+              </td>
+              <td>
+                zenyatta_mondatta
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /en
+              </td>
+              <td>
+                /type/object/key
+              </td>
+              <td>
+                /
+              </td>
+              <td>
+                en
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        The <code class="literal">/type/object/key</code> property expects values in both the <span class="bold"><strong>To</strong></span> and <span class="bold"><strong>Value</strong></span> columns. The <span class="bold"><strong>To</strong></span> column is a reference to the namespace of the identifier being defined, and the <span class="bold"><strong>Value</strong></span> column holds the key within the namespace. Namespaces are themselves nodes, and they have identifiers. The third row of the table above shows that the identifier of the <code class="literal">/en</code> namespace is defined by the "en" key within the special root namespace <code class="literal">/</code>. For clarity, these example tuples use ids in each of the columns, which means that they define and use an identifier at the same time. A more accurate representation of the underlying graph would use guids in place of these ids.
+      </p>
+      <p>
+        A proper understanding of names, ids and namespaces is critical to understand Metaweb, and we'll review and explore them in more depth in <a class="xref" href="http://mql.freebaseapps.com/ch03.html#names" title="3.3. Names, Ids, Keys and Namespaces">Section 3.3</a> and <a class="xref" href="http://mql.freebaseapps.com/ch05.html#namespacewrites" title="5.11. Namespaces and Enumerations">Section 5.11</a>.
+      </p>
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title">
+              <a id="id2944699" name="id2944699"></a>2.4. Objects and Types
+            </h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        Until now we've been describing the Metaweb database as a graph of nodes and relationships, and have been carefully avoiding the word "object". But that word has appeared many times in property ids like <code class="literal">/type/object/key</code> and <code class="literal">/freebase/documented_object/tip</code>. While it is important to understand that at a low-level Metaweb databases consist of tuples that define relationships between nodes, it is usually helpful to view those nodes and relationships at a higher level through an object-oriented filter.
+      </p>
+      <p>
+        According to this object-oriented view, the nodes in the graph define objects, and the relationships in the graph define properties of those objects. Instead of thinking about the relationship between The Police, Zenyatta Mondatta and Driven to Tears in terms of tuples, we might think of them using pseudo-code <sup>[<a class="footnote" href="http://mql.freebaseapps.com/ch02#ftn.id2944732" id="id2944732" name="id2944732">4</a>]</sup> like this:
+      </p>
+      <pre class="programlisting">{
+  id: "/en/the_police",
+  name: "The Police",
+  /music/artist/album: {
+    id: "/en/zenyatta_mondatta",
+    name: "Zenyatta Mondatta",
+    /music/album/track: {
+      name: "Driven to Tears",
+      /music/track/length: 200.266
+    }
+    /music/album/track: {
+      name: "Canary in a Coalmine",
+      /music/track/length: 146.506
+    }
+  }
+}
+</pre>
+      <p>
+        In this view of the data, we see an object with id <code class="literal">/en/the_police</code> and name "The Police". (We're using properties <code class="literal">id</code> and <code class="literal">name</code> as shorthand for the "universal" <code class="literal">/type/object/id</code> and <code class="literal">/type/object/name</code> properties that are shared by all objects. We'll have more to say about these universal properties below.) That object has an album named "Zenyatta Mondatta", and that album has two tracks (others are omitted here for simplicity) named "Driven to Tears" and "Canary in a Coalmine". Each of those track objects has a length property that specifies its length in seconds. Note that this particular view of the data relies on the properties <code class="literal">/music/artist/album</code> and <code class="literal">/music/album/track</code>. These are the reverse of the <code class="literal">/music/album/artist</code> and <code class="literal">/music/track/album</code> properties that we saw in the nodes-and-relationships view of the data.
+      </p>
+      <p>
+        In order to complete the object-oriented view of Metaweb nodes, we have to introduce the notion of <span class="emphasis"><em>types</em></span>. A Metaweb type is a collection of related properties, and a Metaweb object can be an instance of one or more types. <code class="literal">/en/the_police</code> is an instance of the type <code class="literal">/music/artist</code>, <code class="literal">/en/zenyatta_mondatta</code> is an instance of <code class="literal">/music/album</code>, and the object that represents the track Driven to Tears is an instance of <code class="literal">/music/track</code>. Like properties, types are represented as nodes in the graph. Every property node is an instance of <code class="literal">/type/property</code>, and every type node is an instance of <code class="literal">/type/type</code> (which means that <code class="literal">/type/type</code> is an instance of itself!) Property objects use the type of which they are a part as the namespace in which their id is defined. So the properties of <code class="literal">/music/track</code>, such as <code class="literal">/music/track/album</code> and <code class="literal">/music/track/length</code>, have ids that begin with <code class="literal">/music/track</code>.
+      </p>
+      <p>
+        Types and properties are related via the (unique) <code class="literal">/type/property/schema</code> property, which defines the relationship between a property and the type of which it is a part. The reverse property <code class="literal">/type/type/properties</code> represents the (non-unique) relationship between a type and all of its properties.
+      </p>
+      <p>
+        There are two other, more important, properties that involve types. The first is <code class="literal">/type/object/type</code>. Like <code class="literal">/type/object/name</code> and <code class="literal">/type/object/key</code>, this is a universal property that is used on practically all object in the database. It defines the types (it is non-unique) that an object belongs to. If we ask the Metaweb engine at freebase.com about the types of the <code class="literal">/en/the_police</code> object, for example, we find that in addition to <code class="literal">/music/artist</code>, that object is also an instance of <code class="literal">/common/topic</code>, <code class="literal">/music/producer</code>, and <code class="literal">/music/musical_group</code>.
+      </p>
+      <p>
+        The <code class="literal">/type/object/type</code> property is important for a couple of reasons. First, the type of an object tells us what properties it is likely to have. For example, if we know that an object is a <code class="literal">/music/artist</code>, we know it makes sense to ask about the <code class="literal">/music/artist/album</code> property of the object. Second, the type of an object is a useful disambiguator. If we ask Metaweb for objects named "English", we will likely find many. We can substantially narrow our search by asking for for objects named "English" that are also instances of <code class="literal">/type/lang</code>.
+      </p>
+      <p>
+        In addition to <code class="literal">/type/object/type</code>, there is one other very important type-related property. The (unique) <code class="literal">/type/property/expected_type</code> property of any property specifies the type of the value of that property. The expected type of the <code class="literal">/music/artist/album</code> property, for example, is <code class="literal">/music/album</code>, and the expected type of <code class="literal">/music/album/track</code> is <code class="literal">/music/track</code>.
+      </p>
+      <p>
+        The addition of types to our object-oriented view of the Metaweb graph allows us to simplify our pseudo-code representation of it. Compare this object representation with the one at the beginning of this section:
+      </p>
+      <pre class="programlisting">{
+  id: "/en/the_police",
+  type: "/music/artist",
+  name: "The Police",
+  album: {
+    id: "/en/zenyatta_mondatta",
+    name: "Zenyatta Mondatta",
+    track: {
+      name: "Driven to Tears",
+      length: 200.266
+    }
+    track: {
+      name: "Canary in a Coalmine",
+      length: 146.506
+    }
+  }
+}
+</pre>
+      <p>
+        We've added a <code class="literal">type</code> property to the outermost object, specifying that it is a <code class="literal">/music/artist</code>. This allows us to use the simple property name <code class="literal">album</code> instead of <code class="literal">/music/artist/album</code>. Furthermore, since we know that expected type of <code class="literal">/music/artist/album</code> is <code class="literal">/music/album</code>, we're now just using the property name <code class="literal">track</code> instead of <code class="literal">/music/album/track</code>. For the same reason, we've shortened <code class="literal">/music/track/length</code> to <code class="literal">length</code>.
+      </p>
+      <p>
+        Both the <code class="literal">/type/object/type</code> and <code class="literal">/type/property/expected_type</code> properties are a very useful part of the object-oriented view of Metaweb, but they are not fundamental to the nodes-and-relationships view. A node in the graph can have a relationship described by a property <code class="literal">p</code> even if that node does not have a <code class="literal">/type/object/type</code> relationship with the type that defines <code class="literal">p</code>. That is, an object can use a property without "declaring" itself to be a member of the type that defines the property. Properties like <code class="literal">/type/object/name</code>, for example, are commonly used on objects, but <code class="literal">/type/object/type</code> is never set to <code class="literal">/type/object</code>. Similarly, it is perfectly possible (and not uncommon) to define a <code class="literal">/common/topic/alias</code> property on an object without setting <code class="literal">/type/object/type</code> to <code class="literal">/common/topic</code>.
+      </p>
+      <p>
+        Also, the expected type of a property is only the <span class="emphasis"><em>expected</em></span> type. The open and fluid nature of the Metaweb graph means that Metaweb cannot guarantee that the values of a property will always be members of the expected type.
+      </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="typeobjectproperties" name="typeobjectproperties"></a>2.4.1. Universal Properties
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          <code class="literal">/type/object</code> is a special type that serves just to define a namespace for a set of special properties that can be used with any object. The properties with ids in the <code class="literal">/type/object</code> namespace are commonly used in queries on any object and are typically written in MQL queries with unqualified names – we speak of the <code class="literal">name</code> property and the <code class="literal">key</code> property, for example, instead of <code class="literal">/type/object/name</code> and <code class="literal">/type/object/key</code>. Because of the universality of this type, objects should not have their type set to <code class="literal">/type/object</code>. Similarly, properties should not have their expected type set to <code class="literal">/type/object</code>.
+        </p>
+        <p>
+          The following are the universal properties defined by <code class="literal">/type/object</code>. The most important ones have already been introduced, but they are all listed here for completeness:
+        </p>
+        <div class="variablelist">
+          <dl>
+            <dt>
+              <span class="term"><code class="literal">name</code></span>
+            </dt>
+            <dd>
+              <p>
+                This property defines human-readable names for the object, suitable for display to the end users. Each name is a <code class="literal">/type/text</code> value which holds a string and defines the human language in which it is written. The <code class="literal">name</code> property is special in two ways:
+              </p>
+              <div class="itemizedlist">
+                <ul>
+                  <li>
+                    <p>
+                      An object may have more than one name, but may only have one name per language. That is, it can have only one English name, only one French name, and so on.
+                    </p>
+                  </li>
+                  <li>
+                    <p>
+                      When querying Metaweb, you may treat the <code class="literal">name</code> property as if it was a single <code class="literal">/type/text</code> value rather than a set of values. Metaweb will automatically return the object's name (if it has one) in your preferred language. Because of this special feature, the <code class="literal">name</code> property has <code class="literal">/type/property/unique</code> set to <code class="literal">true</code>.
+                    </p>
+                  </li>
+                </ul>
+              </div>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">key</code></span>
+            </dt>
+            <dd>
+              <p>
+                This property defines identifiers for the object. These identifiers are intended for use by developers and scripts and are not typically displayed to end users. Each <code class="literal">key</code> property specifies a namespace object and a name within the namespace. Metaweb guarantees that no two objects will ever have the same identifier.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">id</code></span>
+            </dt>
+            <dd>
+              <p>
+                The <code class="literal">id</code> property is used to uniquely identify an object using an identifier defined by one of its keys. Identifiers are written as strings with slash characters between namespaces and names. "/type/object" is an <code class="literal">id</code> value, as are "/en/the_police" and "/user/docs/music/note". If you query the <code class="literal">id</code> of an object that has more than one key, it is unspecified which one is returned. If you query the id of an object with no keys, the value returned is a synthetic id formed by removing the hash character from the object's <code class="literal">guid</code> and prefixing it with "/guid/". This property is read-only, but you can define new ids for or alter existing ids of an object with the <code class="literal">key</code> property.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">type</code></span>
+            </dt>
+            <dd>
+              <p>
+                This property defines the types associated with the object. The object can be viewed as an instance of any of these types. Each type is itself a Metaweb object, of <code class="literal">/type/type</code>.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">timestamp</code></span>
+            </dt>
+            <dd>
+              <p>
+                This unique read-only property specifies when the object was created.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">creator</code></span>
+            </dt>
+            <dd>
+              <p>
+                This unique read-only property specifies which Metaweb user created the object. It has an expected type of <code class="literal">/type/user</code>.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">permission</code></span>
+            </dt>
+            <dd>
+              <p>
+                This unique read-only property is a link to a <code class="literal">/type/permission</code> object. A permission object specifies which Metaweb usergroups are allowed to alter the object. See <a class="xref" href="http://mql.freebaseapps.com/ch02.html#accesscontrol" title="2.7. Access Control">Section 2.7</a> for more on users, usergroups and permissions.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">guid</code></span>
+            </dt>
+            <dd>
+              <p>
+                Every object in a Metaweb database has a <span class="emphasis"><em>globally unique identifier</em></span> or <span class="emphasis"><em>guid</em></span>. The <code class="literal">guid</code> property specifies the unique identifier for an object. A guid is a long string of hexadecimal digits following the hash character, and might look like this: <code class="literal">#9202a8c04000641f800000000006df1b</code>. No two objects will ever have the same value of the <code class="literal">guid</code> property. This property is read-only, and its use is discouraged: you should usually use the <code class="literal">id</code> property instead.
+              </p>
+            </dd>
+          </dl>
+        </div>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="id2945450" name="id2945450"></a>2.4.2. Types and Domains
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          The Metaweb type system does not include an inheritance mechanism. The <code class="literal">/type/object</code> type is not the supertype of other types; it is simply a set of very general properties that are useful on any object. Although Metaweb types do not form an inheritance hierarchy, they can be categorized as illustrated in <a class="xref" href="http://mql.freebaseapps.com/ch02.html#types_tree" title="Figure 2.1. Categories of Metaweb types">Figure 2.1</a>.
+        </p>
+        <div class="figure">
+          <a id="types_tree" name="types_tree"></a>
+          <p class="title">
+            <b>Figure 2.1. Categories of Metaweb types</b>
+          </p>
+          <div class="figure-contents">
+            <pre class="programlisting">                      +--/type/id
+                      |
+                      +--/type/int
+                      |
+                      +--/type/float
+                      |
+                      +--/type/boolean
+                      |
+      +--Value Types--+--/type/text
+      |               |
+      |               +--/type/rawstring
+      |               |                     +--/restaurant domain
+      |               +--/type/uri          |
+      |               |                     +--/location domain
+      |               +--/type/datetime     |
+      |               |                     +--/film domain   +-/music/track
+Types-+               +--/type/key          |                 |
+      |                                     +--/music domain--+-/music/album
+      |                                     |                 |
+      |               +--Freebase Types-----+--/book domain   +-/music/artist
+      |               |                     |
+      |               |                     +--etc.
+      |               |
+      +--Object Types-+--Core Types (/type domain)    
+                      |                     
+                      +--Common Types (/common domain)
+                      |                     
+                      +--User-defined types-+--/user/joe/default_domain
+                                            |
+                                            +--/user/joe/music
+</pre>
+          </div>
+        </div><br class="figure-break">
+        <p>
+          Metaweb defines a small set of <span class="emphasis"><em>value types</em></span> that represent primitives such as numbers, strings, dates and booleans. These value types are described in <a class="xref" href="http://mql.freebaseapps.com/ch02.html#mqlvalues" title="2.5. Value Types">Section 2.5</a>. All other types are <span class="emphasis"><em>object types</em></span>. Types are organized into <span class="emphasis"><em>domains</em></span>, which are simply collections of related types. Like properties and types, domains are represented by Metaweb objects and these domain objects serve as the namespaces for the types they include.
+        </p>
+        <p>
+          Core types that are fundamental to Metaweb are in the <code class="literal">/type</code> domain. This domain includes the value types plus fundamental object types such as <code class="literal">/type/type</code> and <code class="literal">/type/property</code>. Other commonly useful (but not so fundamental) types are part of the <code class="literal">/common</code> domain. <a class="xref" href="http://mql.freebaseapps.com/ch02.html#mqltypes" title="2.6. Object Types">Section 2.6</a> describes the object types in the <code class="literal">/type</code> domain plus the most important types in the <code class="literal">/common</code> domain. It also discusses a few other domains that contain commonly used types.
+        </p>
+        <p>
+          In addition to these core and common domains, <span class="emphasis"><em>freebase.com</em></span> defines many other domains, such as <code class="literal">/film</code>, <code class="literal">/finance</code> <code class="literal">/government</code> and <code class="literal">/chemistry</code> for general knowledge representation. You can browse these domains at <span class="emphasis"><em><a class="ulink" href="http://www.freebase.com/site/data">http://www.freebase.com/site/data</a></em></span>, and we'll continue to make heavy use of types from the <code class="literal">/music</code> domain in <a class="xref" href="http://mql.freebaseapps.com/ch03.html" title="Chapter 3. The Metaweb Query Language">Chapter 3</a> and <a class="xref" href="http://mql.freebaseapps.com/ch04.html" title="Chapter 4. Metaweb Read Services">Chapter 4</a>.
+        </p>
+        <p>
+          Finally every Metaweb user has a domain in which they can define their own types. (Object types only, however: users cannot define new value types.) If your Metaweb username is "joe", then you have a domain <code class="literal">/user/joe/default_domain</code>. The <span class="emphasis"><em>freebase.com</em></span> client also allows you to define additional domains in the <code class="literal">/user/joe</code> namespace. <a class="xref" href="http://mql.freebaseapps.com/ch05.html" title="Chapter 5. The MQL Write Grammar">Chapter 5</a>, for example, will ask you to create a personal domain named <code class="literal">/user/joe/music</code>.
+        </p>
+      </div>
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title">
+              <a id="mqlvalues" name="mqlvalues"></a>2.5. Value Types
+            </h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        Like many programming languages, Metaweb draws a distinction between objects and primitive values such as numbers, dates and strings. When we view the Metaweb graph as a set of tuples, we see that some tuples have a reference to another node in the <span class="bold"><strong>To</strong></span> column and some have a primitive value in the <span class="bold"><strong>Value</strong></span> column instead. If a property has an expected type that is a value type, then a tuple involving that property will have a value in the <span class="bold"><strong>Value</strong></span> column. On the other hand, if a property has an expected type that is an object type then a tuple involving that property will have no value in the <span class="bold"><strong>Value</strong></span> column.
+      </p>
+      <p>
+        Metaweb defines nine value types. Like all Metaweb types, value types are identified by type objects such as <code class="literal">/type/int</code> (for the value type that represents integer values). The sub-sections that follow explain each of the value types in detail. We begin, however, with a short discussion of value types and properties.
+      </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="id2945700" name="id2945700"></a>2.5.1. Properties of Value Types
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          In <a class="xref" href="http://mql.freebaseapps.com/ch03.html" title="Chapter 3. The Metaweb Query Language">Chapter 3</a>, we'll learn that there are two ways to ask for the value of a property in MQL. Think of the <code class="literal">/music/track/length</code> property: it represents the duration of a track has an expected type of <code class="literal">/type/float</code>, which is a value type representing a floating-point number. If we use the first MQL query technique to ask for the length of a particular song, we simply get a single number back. If we use the other technique, MQL will pretend that the value is a simple object with two properties:
+        </p>
+        <div class="variablelist">
+          <dl>
+            <dt>
+              <span class="term"><code class="literal">value</code></span>
+            </dt>
+            <dd>
+              <p>
+                this property holds the primitive value: a number in this case.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">type</code></span>
+            </dt>
+            <dd>
+              <p>
+                this property specifies the type of the primitive: <code class="literal">/type/float</code> in this case.
+              </p>
+            </dd>
+          </dl>
+        </div>
+        <p>
+          When queried in this way, all value types appear to have these two properties. Keep in mind, however, that these are not true properties: MQL simply allows value types to behave as if they have <code class="literal">value</code> and <code class="literal">type</code> properties. These properties are represented by the <code class="literal">/type/value/value</code> and <code class="literal">/type/value/type</code> objects. <code class="literal">/type/value</code> is nominally a type, but is never used as one: like <code class="literal">/type/object</code> it exists only to group a set of related properties. <code class="literal">/type/object</code> defines the universal properties of object types, and <code class="literal">/type/value</code> defines the universal properties (only two of them) of value types.
+        </p>
+        <p>
+          If a property has an expected type of <code class="literal">/type/text</code> or <code class="literal">/type/key</code>, then any tuple involving that property will have values in both the <span class="bold"><strong>To</strong></span> and <span class="bold"><strong>Value</strong></span> column. <code class="literal">/type/text</code> and <code class="literal">/type/key</code> are considered value types, but are really something of a hybrid between object types and value types. In addition to the synthetic <code class="literal">value</code> and <code class="literal">type</code> properties, each of these types has a real property as well: <code class="literal">/type/text/lang</code> specifies the human language of a string of text and <code class="literal">/type/key/namespace</code> specifies the namespace of an id. Further details are in <a class="xref" href="http://mql.freebaseapps.com/ch02.html#typetext" title="2.5.5. /type/text">Section 2.5.5</a> and <a class="xref" href="http://mql.freebaseapps.com/ch02.html#typekey" title="2.5.9. /type/key">Section 2.5.9</a>.
+        </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="typeint" name="typeint"></a>2.5.2. /type/int
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          Values of this type are signed integers. Metaweb uses a 64-bit representation internally, which means that the range of valid values of <code class="literal">/type/int</code> is from -9223372036854775808 to 9223372036854775807. An integer literal is simply an optional minus sign followed by a sequence of decimal digits. Metaweb does not support octal or hexadecimal notation for integers, nor does it allow the use of exponential notation for expressing integers.
+        </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="typefloat" name="typefloat"></a>2.5.3. /type/float
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          Values of this type are signed numbers that may include an integer part, a fractional part, and an order of magnitude (a power of ten by which the integer and fractional parts are multiplied.) Metaweb uses the 64-bit IEEE-754 floating point representation which supports magnitudes between 10<sup>-324</sup> and 10<sup>308</sup>. C and Java programmers may recognize this as the <code class="literal">double</code> datatype. Metaweb does not support the special values Infinity and NaN, however.
+        </p>
+        <p>
+          A literal of <code class="literal">/type/float</code> consists of an optional minus sign, and optional integer part, and optional decimal point and fractional part and an optional exponent. The integer and fractional parts are simply strings of decimal digits. The exponent begins with the letter e or E, followed by an optional minus sign, and one to three digits. The following are all valid <code class="literal">/type/float</code> literals:
+        </p>
+        <pre class="programlisting">1.0       # integer and fractional part
+1         # integer part alone
+.0        # fractional part alone
+-1        # minus sign allowed as first character
+1E-5      # exponent: <code class="literal">1 × 10<sup>-5</sup></code> or 0.00001
+5.98e24   # weight of earth in kg: <code class="literal">5.98 × 10<sup>24</sup></code>
+</pre>
+        <p>
+          There are an infinite number of real numbers, and a 64-bit representation can only describe a finite subset of them. Any number with 12 or fewer significant digits can be stored and retrieved exactly with no loss of precision. Numbers with more than 12 significant digits may have those digits truncated when they are stored in Metaweb.
+        </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="typeboolean" name="typeboolean"></a>2.5.4. /type/boolean
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          There are only two values for this type; they represent the boolean truth values <code class="literal">true</code> and <code class="literal">false</code>. Note that Metaweb sometimes uses the absence of a value (<code class="literal">null</code>) in place of <code class="literal">false</code>.
+        </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="typetext" name="typetext"></a>2.5.5. /type/text
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          A value of <code class="literal">/type/text</code> is a string of text plus a reference to a <code class="literal">/type/lang</code> object that specifies the human language of that text. The <code class="literal">/type/object/name</code> property is the most frequently used property of this type.
+        </p>
+        <p>
+          <code class="literal">/type/text</code> is unusual. Its <code class="literal">value</code> property specifies the text itself, but it also has a <code class="literal">lang</code> property that specifies the language in which the text is written. The <code class="literal">lang</code> property refers to an object of type <code class="literal">/type/lang</code>. The <code class="literal">/lang</code> namespace holds many instances of this type, such as <code class="literal">/lang/en</code> for English.
+        </p>
+        <p>
+          The text of a <code class="literal">/type/text</code> value must be a string of Unicode characters, encoded using the UTF-8 encoding. The encoded string must not occupy more than 4096 bytes. Longer chunks of text (or binary data) can be stored in Metaweb content store.
+        </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="typerawstring" name="typerawstring"></a>2.5.6. /type/rawstring
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          A value of <code class="literal">/type/rawstring</code> is a string of bytes with no associated language specification. The length of the string must not exceed 4096 bytes.
+        </p>
+        <p>
+          Use <code class="literal">/type/rawstring</code> instead of <code class="literal">/type/text</code> for small amounts of binary data and for textual strings that are not intended to be human readable.
+        </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="typeuri" name="typeuri"></a>2.5.7. /type/uri
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          A value of <code class="literal">/type/uri</code> represents a URI (Uniform Resource Identifier: see RFC 3986). The <code class="literal">value</code> property holds the URI text, which should consist entirely of ASCII characters. Any non-ASCII characters, and any characters that are not allowed in URIs should be URI-encoded using hexadecimal escapes of the form <code class="literal">%XX</code> to represent arbitrary bytes.
+        </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="typedatetime" name="typedatetime"></a>2.5.8. /type/datetime
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          An instance of <code class="literal">/type/datetime</code> represents an instant in time. That instant may be as long as a year or as short as a fraction of a second. The <code class="literal">value</code> property is a string representation of a date and time formatted according to a subset <sup>[<a class="footnote" href="http://mql.freebaseapps.com/ch02#ftn.id2946149" id="id2946149" name="id2946149">5</a>]</sup> of the ISO 8601 standard.
+        </p>
+        <p>
+          A <code class="literal">/type/datetime</code> value that represents the first millisecond of the 21st century looks like this:
+        </p>
+        <pre class="programlisting">2001-01-01T00:00:00.001Z
+</pre>
+        <p>
+          Notice the following points about this format:
+        </p>
+        <div class="itemizedlist">
+          <ul>
+            <li>
+              <p>
+                Longer intervals of time (years, months, etc.) are specified before shorter intervals (minutes, seconds, etc.).
+              </p>
+            </li>
+            <li>
+              <p>
+                Years must be specified with a full four digits, even when the leading digits are zeros. Negative years are allowed, but years with more than four digits are not allowed.
+              </p>
+            </li>
+            <li>
+              <p>
+                Months and days must always be specified with two digits, starting with 01, even when the first digit is a 0.
+              </p>
+            </li>
+            <li>
+              <p>
+                The components of a date are separated from each other with hyphens.
+              </p>
+            </li>
+            <li>
+              <p>
+                A date is separated from the time that follows with a capital letter T.
+              </p>
+            </li>
+            <li>
+              <p>
+                Times are specified using a 24-hour clock. Midnight is hour 00, not hour 24. Hours and minutes must be specified with two digits, even when the first digit is 0.
+              </p>
+            </li>
+            <li>
+              <p>
+                Seconds must be specified with two digits, but may also include a decimal point and a fractional second. Metaweb allows up to 9 digits after the decimal point.
+              </p>
+            </li>
+            <li>
+              <p>
+                The hours, minutes, and seconds components of a time specification are separated from each other with colons.
+              </p>
+            </li>
+            <li>
+              <p>
+                A time may be followed by a timezone specification. The capital letter Z is special: it specifies that the time is in Universal Time, or UTC (formerly known as GMT). Local timezones that are later than UTC (east of the Greenwich meridian) are expressed as a positive offset of hours and minutes such as <code class="literal">+05:30</code> for India. Local times earlier than UTC are expressed with a negative offset such as <code class="literal">-08:00</code> for US Pacific time. If no timezone is specified, then then the <code class="literal">/type/datetime</code> value is assumed to be a local time in an unknown timezone. Specifying a timezone of <code class="literal">+00:00</code> is the same as specifying <code class="literal">Z</code>. Specifying <code class="literal">-00:00</code> is the same as omitting the timezone altogether.
+              </p>
+            </li>
+            <li>
+              <p>
+                All characters used in the <code class="literal">/type/datetime</code> representation are from the ASCII character set, so date and time values can be treated as strings of 8-bit ASCII characters.
+              </p>
+            </li>
+          </ul>
+        </div>
+        <p>
+          A <code class="literal">/type/datetime</code> value can represent time at various granularities, and any of the date or time fields on the right-hand side can be omitted to produce a value with a larger granularity. For example, the seconds field can be omitted to specify a day, hour, and minute. Or all the time fields and the day-of-month field can be omitted to specify just a year and a month. Also, the date fields can be omitted to specify a time that is independent of date. A timezone may not be appended to a date alone: there must be at least an hour field specified before a timezone.
+        </p>
+        <p>
+          Here are some example <code class="literal">/type/datetime</code> values that demonstrate the allowed formats:
+        </p>
+        <pre class="programlisting">2001                   # The year 2001
+2001-01                # January 2001
+2001-01-01             # January 1st 2001
+2001-01-01T01Z         # 1 hour past midnight (UTC), January 1st 2001
+2000-12-31T23:59Z      # 1 minute before midnight (UTC) December 31st, 2000
+2000-12-31T23:59:59Z   # 1 second before midnight (UTC) December 31st, 2000
+2000-12-31T23:59:59.9Z # .1 second before midnight (UTC) December 31st, 2000
+00:00:00Z              # Midnight, UTC
+12:15                  # Quarter past noon, local time
+17-05:00               # Happy hour, Boston (US Eastern Standard Time)
+</pre>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="typekey" name="typekey"></a>2.5.9. /type/key
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          Values of <code class="literal">/type/key</code> define object ids. <code class="literal">/type/key</code> is the expected type of the <code class="literal">/type/object/key</code> property and the <code class="literal">/type/namespace/keys</code> property, and is not intended for use by any other properties.
+        </p>
+        <p>
+          The <code class="literal">value</code> property of a <code class="literal">/type/key</code> value is the local, or unqualified part of an identifier. It must be a string of ASCII characters, and may include letters, numbers, underscores, hyphens and dollar signs. A key may not begin or end with a hyphen or underscore. The dollar sign is special: it must be followed by four hexadecimal digits (using letters A through F, in uppercase), and is used when it is necessary to map Unicode characters into ASCII so that they can be represented in a key. To represent an extended Unicode character (that does not fit in four hexadecimal digits), encode that character in UTF-16 using a surrogate pair, and then express the surrogate pair using two dollar-sign escapes. Each component of an id used for domains, types and properties is further restricted: they may not include hyphens or dollar signs, they may not include two underscores in a row, and they may not start with a  
+          digit.
+        </p>
+        <p>
+          Like <code class="literal">/type/text</code>, <code class="literal">/type/key</code> has a third property. The <code class="literal">/type/key/namespace</code> property refers to an object, but the interpretation of that object depends on whether the key is the value of a <code class="literal">/type/object/key</code> property or a <code class="literal">/type/namespace/keys</code> property. The <code class="literal">/type/object/key</code> property defines an id for the object (let's call it <code class="literal">o</code>) that is the subject of that property. The value of the <code class="literal">key</code> property of <code class="literal">o</code> is a <code class="literal">/type/key</code> value which we'll call <code class="literal">k</code>. The <code class="literal">namespace</code> property of <code class="literal">k</code> is a namespace object <code class="literal">n</code>. In this case, the id of <code class="literal">n</code> plus the <code class="literal">value</code> property of <code class="literal">k</code> define an id for the original object <code class="literal">o</code>.
+        </p>
+        <p>
+          The <code class="literal">/type/namespace/keys</code> property, on the other hand, defines an identifier within the namespace <code class="literal">n</code> that is the subject of that property. The value of the <code class="literal">keys</code> property is a <code class="literal">/type/key</code> value <code class="literal">k</code> as before, and the <code class="literal">namespace</code> property of <code class="literal">k</code> refers to an object <code class="literal">o</code>. Here, the id of <code class="literal">n</code> plus the <code class="literal">value</code> of <code class="literal">k</code> define an id for <code class="literal">o</code>. These two different uses of <code class="literal">/type/key</code> values are somewhat confusing, but we'll see clarifying examples in <a class="xref" href="http://mql.freebaseapps.com/ch03.html#keysandnamespaces" title="3.3.3. Keys and Namespaces">Section 3.3.3</a> and <a class="xref" href="http://mql.freebaseapps.com/ch05.html#namespacewrites" title="5.11. Namespaces and Enumerations">Section 5.11</a>.
+        </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="typeid" name="typeid"></a>2.5.10. /type/id
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          The final value type, <code class="literal">/type/id</code>, represents an object identifier in "flat form", as a string, rather than as a key in a namespace. <code class="literal">/type/id</code> exists only to serve as the expected type of the <code class="literal">/type/object/id</code> and <code class="literal">/type/object/guid</code> properties. It can not be used by other properties.
+        </p>
+      </div>
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title">
+              <a id="mqltypes" name="mqltypes"></a>2.6. Object Types
+            </h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        This section covers the core object types in the <code class="literal">/type</code> domain, and also introduces commonly-used types from the <code class="literal">/common</code> domain and elsewhere. You do not need to understand these types in detail in order to make productive use of Metaweb. Still, knowing what these basic types are is a helpful orientation to the system. You can learn more about these (or any) Metaweb types at <span class="emphasis"><em>freebase.com</em></span>. Learn about a type and its properties by appending the type id to the URL <span class="emphasis"><em>http://freebase.com/type/schema</em></span>. To read more about the type <code class="literal">/type/unit</code>, for example, visit: <span class="emphasis"><em><a class="ulink" href="http://freebase.com/type/schema/type/unit">http://freebase.com/type/schema/type/unit</a></em></span> .
+      </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="coretypes" name="coretypes"></a>2.6.1. Core Types
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          The <code class="literal">/type</code> domain defines the value types listed in <a class="xref" href="http://mql.freebaseapps.com/ch02.html#mqlvalues" title="2.5. Value Types">Section 2.5</a> and the other core types that Metaweb depends on. These core types can be loosely divided into categories. The first category is types that define the Metaweb type system. These types have already been introduced, but are summarized here for completeness:
+        </p>
+        <div class="variablelist">
+          <dl>
+            <dt>
+              <span class="term"><code class="literal">/type/object</code></span>
+            </dt>
+            <dd>
+              <p>
+                This type exists simply to group the properties, such as <code class="literal">/type/object/name</code> and <code class="literal">/type/object/type</code> shared by all objects. <code class="literal">/type/object</code> is <span class="emphasis"><em>not</em></span> a supertype of other types, and objects are never actually typed with <code class="literal">/type/object</code>.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/type/type</code></span>
+            </dt>
+            <dd>
+              <p>
+                This type describes a type, which means that it is the only type that is an instance of itself. The <code class="literal">properties</code> property defines the set of properties of the type. The <code class="literal">instance</code> property defines the set of instances of the type (it is the reverse property of <code class="literal">/type/object/type</code>). The <code class="literal">domain</code> property links to the domain that defines the type. The <code class="literal">expected_by</code> property is the reverse of <code class="literal">/type/property/expected_type</code> : it is is the set of properties whose values are of this type.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/type/property</code></span>
+            </dt>
+            <dd>
+              <p>
+                This type defines a property. The properties of a property object include <code class="literal">expected_type</code> which specifies the type of the value of the property and <code class="literal">unique</code> which specifies whether the property is restricted to a single value. The <code class="literal">schema</code> property refers to the type object of which the property is a part: it is the reciprocal of <code class="literal">/type/type/properties</code>. The <code class="literal">unit</code> property specifies a <code class="literal">/type/unit</code> value associated with the property: it is useful for properties whose expected type is <code class="literal">/type/int</code> or <code class="literal">/type/float</code>. If a property is a master property, then the <code class="literal">reverse_property</code> property refers to its reciprocal, if one is defined. And if a property is a reverse property, then the <code class="literal">master_property</code> property refers to the reciprocal. The <code class="literal">enumeration</code> property of a property has to do with identifiers and namespaces and is explained in <a class="xref" href="http://mql.freebaseapps.com/ch03.html#enumerations" title="3.3.5. Enumerations">Section 3.3.5</a>. The <code class="literal">requires_permission</code> property is related to access control and is explained in <a class="xref" href="http://mql.freebaseapps.com/ch05.html#perpropertyaccesscontrol" title="5.12.3. Per-Property Access Control">Section 5.12.3</a>.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/type/domain</code></span>
+            </dt>
+            <dd>
+              <p>
+                A domain represents a set of related types, and also serves as a namespace for those types. The <code class="literal">types</code> property (the reciprocal of <code class="literal">/type/type/domain</code>) specifies the members of the domain. For access control purposes, each domain has an associated usergroup that "owns" the domain.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/type/namespace</code></span>
+            </dt>
+            <dd>
+              <p>
+                This type represents a namespace, and its <code class="literal">keys</code> property specifies a set of named objects that exist within the namespace. <code class="literal">/type/namespace/keys</code> is the reciprocal of <code class="literal">/type/object/key</code>. See <a class="xref" href="http://mql.freebaseapps.com/ch02.html#typekey" title="2.5.9. /type/key">Section 2.5.9</a> for more about keys and namespaces. Namespaces are more fundamental to the Metaweb architecture than types are, and any object can be used as a namespace, even if it is not typed as a <code class="literal">/type/namespace</code> object.
+              </p>
+            </dd>
+          </dl>
+        </div>
+        <p>
+          Another category of core type are those involved in access control (see <a class="xref" href="http://mql.freebaseapps.com/ch02.html#accesscontrol" title="2.7. Access Control">Section 2.7</a> for more on this topic):
+        </p>
+        <div class="variablelist">
+          <dl>
+            <dt>
+              <span class="term"><code class="literal">/type/user</code></span>
+            </dt>
+            <dd>
+              <p>
+                Each registered Metaweb user is represented by an object of <code class="literal">/type/user</code>. User objects have ids in the <code class="literal">/user</code> namespace. If your username is <code class="literal">joe_developer</code>, then your <code class="literal">/type/user</code> object is <code class="literal">/user/joe_developer</code>. The <code class="literal">usergroup</code> property of a <code class="literal">/type/user</code> specifies the usergroups of which the user is a member.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/type/usergroup</code></span>
+            </dt>
+            <dd>
+              <p>
+                This type represents a set of users. The <code class="literal">member</code> property is the set of users that belong to the group, and the <code class="literal">permitted</code> property is the set of permissions that are granted to the group.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/type/permission</code></span>
+            </dt>
+            <dd>
+              <p>
+                This type is the key to Metaweb access control. The <code class="literal">permits</code> property is the set of usergroups that have been granted this permission. And the <code class="literal">controls</code> property is the (possibly very large) set of object controlled by this permission object. The default permission object is <code class="literal">/boot/all_permission</code> which allows access by any user.
+              </p>
+            </dd>
+          </dl>
+        </div>
+        <p>
+          The following types represent content, and metadata about that content, in the Metaweb content store:
+        </p>
+        <div class="variablelist">
+          <dl>
+            <dt>
+              <span class="term"><code class="literal">/type/content</code></span>
+            </dt>
+            <dd>
+              <p>
+                Large chunks of content, such as HTML documents and graphical images are not stored in regular Metaweb nodes. Instead, these large binary objects (sometimes called <span class="emphasis"><em>blobs</em></span>) are kept in a separate store. A <code class="literal">/type/content</code> object is the bridge between the Metaweb object store and the Metaweb content store. A <code class="literal">/type/content</code> object represents an entry in the content store, and the id of the <code class="literal">/type/content</code> object is used as an index for retrieving the content.
+              </p>
+              <p>
+                In addition to providing access to the content store, <code class="literal">/type/content</code> defines important properties. The <code class="literal">media_type</code> property specifies the MIME type of the content. For textual content, the <code class="literal">text_encoding</code> and <code class="literal">language</code> properties specify the encoding and language of the text. The <code class="literal">length</code> property specifies the size (in bytes) of the content. The <code class="literal">source</code> property refers to zero or more <code class="literal">/type/content_import</code> objects that specify the source of the content. (If the same content is uploaded multiple times, it may have multiple sources.)
+              </p>
+              <p>
+                <a class="xref" href="http://mql.freebaseapps.com/ch04.html" title="Chapter 4. Metaweb Read Services">Chapter 4</a> shows how to download content from Metaweb, and <a class="xref" href="http://mql.freebaseapps.com/ch06.html" title="Chapter 6. Metaweb Write Services">Chapter 6</a> demonstrates how to upload content.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/type/content_import</code></span>
+            </dt>
+            <dd>
+              <p>
+                This type describes the source of imported content. Its properties include the URI or filename from which the content was obtained, the user who imported the content, and a timestamp that specifies when the content was imported.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/type/media_type</code></span>
+            </dt>
+            <dd>
+              <p>
+                Instances of this type represent a MIME media type such as "text/html" or "image/png". Instances are given fully-qualified names within the <code class="literal">/media_type</code> namespace, and can be specified with ids like <code class="literal">/media_type/text/html</code> or <code class="literal">/media_type/image/png</code>.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/type/text_encoding</code></span>
+            </dt>
+            <dd>
+              <p>
+                Instances of this type represent standard text encodings, such as ASCII and Unicode UTF-8. Instances are given fully-qualified names within the <code class="literal">/media_type/text_encoding</code> namespace, and can be specified with ids such as <code class="literal">/media_type/text_encoding/ascii</code>.
+              </p>
+            </dd>
+          </dl>
+        </div>
+        <p>
+          Finally, the <code class="literal">/type</code> domain also includes a few miscellaneous types:
+        </p>
+        <div class="variablelist">
+          <dl>
+            <dt>
+              <span class="term"><code class="literal">/type/lang</code></span>
+            </dt>
+            <dd>
+              <p>
+                This type represents a human language. Instances, such as <code class="literal">/lang/en</code> which represents English, exist in the <code class="literal">/lang</code> namespace. The <code class="literal">iso639</code> property specifies the two-letter code (such as "en") of the language. <code class="literal">/type/text</code> values have an associated language, as do <code class="literal">/type/content</code> objects that represent text.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/type/unit</code></span>
+            </dt>
+            <dd>
+              <p>
+                This type defines a measurement unit, and is the expected type of <code class="literal">/type/property/unit</code>. A number of instances, such as <code class="literal">/en/meter</code>, <code class="literal">/en/kilogram</code>, and <code class="literal">/en/second</code>, are defined. This type has no properties.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/type/enumeration</code></span>
+            </dt>
+            <dd>
+              <p>
+                This type is used as the expected type of any property that defines an enumeration. See <a class="xref" href="http://mql.freebaseapps.com/ch03.html#enumerations" title="3.3.5. Enumerations">Section 3.3.5</a> for details.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/type/link</code></span>
+            </dt>
+            <dd>
+              <p>
+                This special type allows us to view the links in the Metaweb graph as objects. It is used in advanced MQL queries as explained in <a class="xref" href="http://mql.freebaseapps.com/ch03.html#links" title="3.7. Links, Reflection and History">Section 3.7</a>.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/type/reflect</code></span>
+            </dt>
+            <dd>
+              <p>
+                This is not a true type, but a collection of special properties used in reflective queries. See <a class="xref" href="http://mql.freebaseapps.com/ch03.html#reflection" title="3.7.3. Reflection">Section 3.7.3</a>.
+              </p>
+            </dd>
+          </dl>
+        </div>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title">
+                <a id="id2947379" name="id2947379"></a>2.6.2. Common Types
+              </h3>
+            </div>
+          </div>
+        </div>
+        <p>
+          The types in the <code class="literal">/common</code> domain are not a core part of the Metaweb infrastructure, but, as the name implies, they are commonly useful, and some of them are quite important for the <span class="emphasis"><em>freebase.com</em></span> client. The five most commonly-used <code class="literal">/common</code> types are:
+        </p>
+        <div class="variablelist">
+          <dl>
+            <dt>
+              <span class="term"><code class="literal">/common/topic</code></span>
+            </dt>
+            <dd>
+              <p>
+                Metaweb objects that are intended for display to end users through <span class="emphasis"><em>freebase.com</em></span> are called "topics". Such objects typically have some appropriate domain-specific type, such as <code class="literal">/music/artist</code> or <code class="literal">/food/restaurant</code>, but are also typically instances of the type <code class="literal">/common/topic</code>. This type defines properties that allow documents, images, webpages, and nicknames to be associated with the topic. This type is so common that properties like <code class="literal">/common/topic/image</code> and <code class="literal">/common/topic/alias</code> are sometimes used without actually adding <code class="literal">/common/topic</code> to the set of types of an object.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/common/document</code></span>
+            </dt>
+            <dd>
+              <p>
+                This type represents a document of some sort. <code class="literal">/common/topic</code> uses this type to associate documents with topics. The most important property is <code class="literal">content</code>, which specifies the single <code class="literal">/type/content</code> object that refers to the document content. Other properties of <code class="literal">/common/document</code> provide meta-information about the document, such as authors, publication date, and so on.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/common/image</code></span>
+            </dt>
+            <dd>
+              <p>
+                <code class="literal">/type/content</code> objects that represent images are typically co-typed with this type. <code class="literal">/common/image</code> defines a <code class="literal">size</code> property that specifies the pixel dimensions of the image.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/common/webpage</code></span>
+            </dt>
+            <dd>
+              <p>
+                This type is simply the URL of a webpage plus a short description of the page's content.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/common/phone_number</code></span>
+            </dt>
+            <dd>
+              <p>
+                This type has two properties of <code class="literal">/type/rawstring</code> to hold a phone number and a county code for the phone number.
+              </p>
+            </dd>
+          </dl>
+        </div>
+        <p>
+          To view the complete list of types in the <code class="literal">/common</code> domain visit <span class="emphasis"><em><a class="ulink" href="http://freebase.com/view/common">http://freebase.com/view/common</a></em></span>. In general, you can browse the contents of a domain by appending the domain id to the URL <span class="emphasis"><em>http://freebase.com/view</em></span>.
+        </p>
+        <p>
+          The <code class="literal">/type</code> and <code class="literal">/common</code> domain are not the only ones that include commonly-used types. There are a few others that you should be aware of:
+        </p>
+        <div class="variablelist">
+          <dl>
+            <dt>
+              <span class="term"><code class="literal">/freebase</code></span>
+            </dt>
+            <dd>
+              <p>
+                This domain defines types used by the <span class="emphasis"><em>freebase.com</em></span> client. Many of them are quite implementation-specific and not of general interest to applications other than Freebase itself. <code class="literal">/freebase/documented_object</code> allows short tips and longer-form documentation to be associated with any other Metaweb object, such as domains, types and properties. <code class="literal">/freebase/user_profile</code> instances hold information about Freebase users.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/location</code></span>
+            </dt>
+            <dd>
+              <p>
+                The <code class="literal">/location</code> domain contains types related to geographical locations. These include <code class="literal">/location/country</code>, <code class="literal">/location/administrative_division</code> (as well as country-specific versions such as <code class="literal">/location/us_state</code>), <code class="literal">/location/citytown</code>, <code class="literal">/location/postal_code</code> and <code class="literal">/location/mailing_address</code>. The reason that the mailing address type is not in <code class="literal">/common</code> along with <code class="literal">/common/phone_number</code> is that it depends on other <code class="literal">/location</code> types for representing countries, cities, and so on.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/people</code></span>
+            </dt>
+            <dd>
+              <p>
+                This domain defines the important type <code class="literal">/people/person</code> as well as related types such as <code class="literal">/people/gender</code> and <code class="literal">/people/marriage</code>.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/time</code></span>
+            </dt>
+            <dd>
+              <p>
+                This domain defines time and date related types beyond the simple <code class="literal">/type/datetime</code> primitive. Types include <code class="literal">/time/day_of_week</code>, <code class="literal">/time/month</code>, and <code class="literal">/time/day_of_year</code>.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">/measurement_unit</code></span>
+            </dt>
+            <dd>
+              <p>
+                This domain defines units of measure. The <code class="literal">/type/unit</code> type we saw earlier marks an object as a unit so that it can be used with <code class="literal">/type/property/unit</code>. But it is this <code class="literal">/measurement_unit</code> domain that provides detailed types to represent units. The <code class="literal">/en/second</code> object, for example is both a <code class="literal">/type/unit</code> and a <code class="literal">/measurement_unit/unit_of_time</code>.
+              </p>
+              <p>
+                The unit types in this domain are not actually commonly used. The more useful types are the <span class="emphasis"><em>compound value types</em></span>: these are types that define two or more properties (often of primitive type) so that multiple values can be manipulated together as a single value. For example <code class="literal">/measurement_unit/time_interval</code> has two <code class="literal">/type/datetime</code> properties and is used to represent the starting and ending point of a period of time. <code class="literal">/measurement_unit/integer_range</code> is similar, but has properties of type <code class="literal">/type/int</code> instead. <code class="literal">/measurement_unit/money_value</code> combines a <code class="literal">/type/float</code> with a <code class="literal">/finance/currency</code> property. And <code class="literal">/measurement_unit/dated_money_value</code> combines those two properties with a <code class="literal">/type/datetime</code>, tying the amount of money to a specific date (which is useful when dealing with inflation and time-varying currency exchange rates, for example).
+              </p>
+            </dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title">
+              <a id="accesscontrol" name="accesscontrol"></a>2.7. Access Control
+            </h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        Metaweb is completely open for reading. Anyone who can connect to Metaweb servers can read data from them. When adding or editing data, however access control comes into play. We've already seen that the types <code class="literal">/type/user</code>, <code class="literal">/type/usergroup</code>, and <code class="literal">/type/permission</code> are used for access control.
+      </p>
+      <p>
+        Metaweb's access control model is quite simple. Every object has a <code class="literal">permission</code> property that refers to a <code class="literal">/type/permission</code> object. The permission object specifies a set of usergroups whose members have permission to modify the object. If a user is a member of one or more of the specified groups, then that user can edit <sup>[<a class="footnote" href="http://mql.freebaseapps.com/ch02#ftn.id2947910" id="id2947910" name="id2947910">6</a>]</sup> the object. Otherwise, the user is not allowed to.
+      </p>
+      <p>
+        This simple access control model is, by default, completely open. In order to allow and encourage free collaboration most Metaweb objects have a permission object that gives edit permission to all Metaweb users. If Metaweb user Fred creates a new object, his friend Jill can freely edit that object, and any other Metaweb user can edit the object as well. (In <a class="xref" href="http://mql.freebaseapps.com/ch06.html" title="Chapter 6. Metaweb Write Services">Chapter 6</a> we'll learn how to alter the default permission to create objects with restricted access.) The use of Metaweb types is also completely open: any user can create instances of any type, regardless of who "owns" the type.
+      </p>
+      <p>
+        Although most objects can be freely edited and all types can be freely used, Metaweb namespaces are not usually wide open like this. System namespaces like <code class="literal">/lang</code> and <code class="literal">/type</code> are owned by Metaweb administrators, and regular users cannot add keys to them. The most common user-defined namespaces are domains, which serve as the namespace for types, and types, which serve as the namespace for properties. When you create a new domain, a usergroup and permission object are created with it, and the <code class="literal">permission</code> property of the domain is set so that only members of the usergroup can define keys in the domain. This means that only members of the group can define types in the domain. Newly created types use the same permission object as their domain, which means that only users in the usergroup can define properties in the namespace of the type. The <span class="emphasis"><em>freebase.com</em></span> client allows users to create personal domains, and to edit the membership of the associated usergroup. This allows Fred to create a new domain and then add Jill and other collaborators to the usergroup so that they can create and modify types within the domain.
+      </p>
+      <p>
+        We'll explore the topic of access control in more detail in <a class="xref" href="http://mql.freebaseapps.com/ch05.html#accessandpermissions" title="5.12. Access Control and Permissions">Section 5.12</a> after we have learned how to express MQL write queries.
+      </p>
+    </div>
+    <div class="footnotes">
+      <div class="footnote">
+        <p>
+          <sup>[<a class="para" href="http://mql.freebaseapps.com/ch02#id2942842" id="ftn.id2942842" name="ftn.id2942842">2</a>]</sup> There are actually six elements of each tuple: relationships, like nodes, have a timestamp indicating when they were added to the database and also a reference to the user that defined the relationship. We'll learn more about the timestamp and creator of a relationship in <a class="xref" href="http://mql.freebaseapps.com/ch03.html#links" title="3.7. Links, Reflection and History">Section 3.7</a>.
+        </p>
+      </div>
+      <div class="footnote">
+        <p>
+          <sup>[<a class="para" href="http://mql.freebaseapps.com/ch02#id2942268" id="ftn.id2942268" name="ftn.id2942268">3</a>]</sup> And that the reverse of /type/property/reverse_property is /type/property/master_property!
+        </p>
+      </div>
+      <div class="footnote">
+        <p>
+          <sup>[<a class="para" href="http://mql.freebaseapps.com/ch02#id2944732" id="ftn.id2944732" name="ftn.id2944732">4</a>]</sup> The resemblance to JavaScript object syntax is intentional. The reason will become clear in <a class="xref" href="http://mql.freebaseapps.com/ch03.html" title="Chapter 3. The Metaweb Query Language">Chapter 3</a>.
+        </p>
+      </div>
+      <div class="footnote">
+        <p>
+          <sup>[<a class="para" href="http://mql.freebaseapps.com/ch02#id2946149" id="ftn.id2946149" name="ftn.id2946149">5</a>]</sup> <code class="literal">/type/datetime</code> only supports dates specified using month and day of month. It does not support the ISO 8601 day-of-year, week-of-year and day-of-week representations.
+        </p>
+      </div>
+      <div class="footnote">
+        <p>
+          <sup>[<a class="para" href="http://mql.freebaseapps.com/ch02#id2947910" id="ftn.id2947910" name="ftn.id2947910">6</a>]</sup> The precise meaning of "edit" is a little complicated, and there is also another form of access control known as per-property access control. Details are in <a class="xref" href="http://mql.freebaseapps.com/ch05.html#accessandpermissions" title="5.12. Access Control and Permissions">Section 5.12</a>.
+        </p>
+      </div>
+    </div>
+  </div>
+    
+  
+</body></html>

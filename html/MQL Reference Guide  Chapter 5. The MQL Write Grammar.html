@@ -1,0 +1,3565 @@
+
+<!-- saved from url=(0032)http://mql.freebaseapps.com/ch05 -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <title>
+        MQL Reference Guide: 
+  Chapter 5. The MQL Write Grammar
+      </title>
+      <link href="./MQL Reference Guide  Chapter 5. The MQL Write Grammar_files/stylesheet.css" rel="stylesheet" type="text/css">
+              
+  
+  <link href="http://mql.freebaseapps.com/index" rel="home" title="Table of Contents">
+  <link href="http://mql.freebaseapps.com/index" rel="up" title="Table of Contents">
+  <link href="http://mql.freebaseapps.com/ch04" rel="prev" title="Chapter 4. Metaweb Read Services">
+    </head>
+    <body>
+      
+  <div id="header">
+    <div id="nav">
+      Chapter 5. The MQL Write Grammar        
+      
+      <a href="http://mql.freebaseapps.com/ch04">◁ previous</a> 
+      <a href="http://mql.freebaseapps.com/index">△ contents</a> 
+      <a href="http://mql.freebaseapps.com/ch06">next ▷</a>
+    </div>
+    
+    <div id="logo">
+      <a href="http://mql.freebaseapps.com/index" title="MQL Reference Guide contents"><img alt="MQL Reference Guide" border="0" height="18" width="258" src="./MQL Reference Guide  Chapter 5. The MQL Write Grammar_files/logo-mqlreference.png"></a>
+    </div>
+  </div>
+      
+    <div class="chapter" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title">
+              <a id="writes" name="writes"></a>Chapter 5. The MQL Write Grammar
+            </h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        Insertions, deletions and updates to a Metaweb database are expressed in a variant of the Metaweb Query Language that was documented in <a class="xref" href="http://mql.freebaseapps.com/ch03.html" title="Chapter 3. The Metaweb Query Language">Chapter 3</a>. The variant used for writing to Metaweb is known as the MQL write grammar, and is the subject of this chapter. Write queries are submitted to Metaweb via the <span class="emphasis"><em>mqlwrite</em></span> service, which is covered in <a class="xref" href="http://mql.freebaseapps.com/ch06.html" title="Chapter 6. Metaweb Write Services">Chapter 6</a>.
+      </p>
+      <p>
+        MQL writes are represented as JSON objects, just as MQL reads are. A number of features of the MQL read grammar only make sense for reads and are not allowed in MQL writes. These include:
+      </p>
+      <div class="itemizedlist">
+        <ul>
+          <li>
+            <p>
+              the use of <code class="literal">[]</code> to query an array of values,
+            </p>
+          </li>
+          <li>
+            <p>
+              the use of directives like <code class="literal">sort</code>, <code class="literal">limit</code> <code class="literal">return</code> and <code class="literal">optional</code>, and
+            </p>
+          </li>
+          <li>
+            <p>
+              the use of operators like <code class="literal">~=</code>.
+            </p>
+          </li>
+        </ul>
+      </div>
+      <p>
+        The MQL write grammar does allow property prefixes like the read grammar does (though these are not often useful in writes) and defines two write-specific directives that are not allowed for reads. The <code class="literal">create</code> directive is used to create a new object in the database, and the <code class="literal">connect</code> directive is used to create a link between two objects. (As we'll see in the tutorial, however, the <code class="literal">connect</code> directive is sometimes implicit and need not be specified explicitly).
+      </p>
+      <div class="sidebar">
+        <p class="title">
+          <b>Using this Tutorial</b>
+        </p>
+        <p>
+          The best way to follow this tutorial is to try out the queries as you read about them. While you learn how to make MQL writes, please use the sandbox server at <span class="emphasis"><em>http://sandbox.freebase.com</em></span>. This server is intended for experimentation. The sandbox hosts a replica of <span class="emphasis"><em>freebase.com</em></span>, and this replica is re-created once a week. This means that any writes you perform (or mistakes you make!) on the sandbox will not persist longer than a week.
+        </p>
+        <p>
+          Anyone can read data from Freebase, but before you can execute write queries, you must register for an account and login. If you already have an account at <span class="emphasis"><em>www.freebase.com</em></span>, it may already have been replicated on the sandbox server. If not, you can create a new account for yourself on the sandbox. Follow the links from the <span class="emphasis"><em>http://sandbox.freebase.com/</em></span> homepage to register.
+        </p>
+        <p>
+          Once you are logged on to the sandbox, you can execute MQL write queries using the the Freebase query editor at <span class="emphasis"><em>http://sandbox.freebase.com/tools/queryeditor</em></span>. Enter queries from this tutorial, click the <span class="bold"><strong>write</strong></span> button, and view the results.
+        </p>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title">
+                <a id="typecreation" name="typecreation"></a>5.1. Creating a Type to Work With
+              </h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          Before we do any explicit MQL writes, let's begin by creating a simple type to work with. By creating and using your own type, you guarantee that the writes you try while working through this tutorial won't interact with writes being issued by other developers who may be working on the tutorial at the same time. As you know, Metaweb types are defined by regular Metaweb objects in the database. This means that types are created like any other objects, with MQL queries. Defining a type with raw MQL is difficult and error prone, however, so the <span class="emphasis"><em>freebase.com</em></span> client provides an easier way to do it.
+        </p>
+        <p>
+          The type we're creating will represent musical notes, and we'll call it "note". Sign in to <span class="emphasis"><em>sandbox.freebase.com</em></span> (creating an account if you have not already done so). From your homepage you can follow links to your default domain where you can create this new note type. Optionally, you may first want to create a new domain named "music" and put the note type into that domain. Don't add any properties to your new type yet. We'll do that later in this tutorial. This manual is focused on MQL and does not attempt to provide step-by-step descriptions of how to use the Freebase client to create domains, types, and properties. The Freebase UI is reasonably intuitive, however, and you can find detailed documentation at <span class="emphasis"><em>http://www.freebase.com/help</em></span>.
+        </p>
+        <p>
+          The Freebase UI displays the names of types and their domains. To write MQL queries, however, we need to know type ids. Each Freebase user has a namespace of the form <code class="literal">/user/</code><em class="replaceable"><code>name</code></em>. Each user account initially has one domain, named <code class="literal">default_domain</code> under their namespace. If your username is "wanda", then the id of your default domain is <code class="literal">/user/wanda/default_domain</code>. If you used this default domain when creating the note type, the id of that type will be <code class="literal">/user/wanda/default_domain/note</code>. If you created a new domain named <code class="literal">music</code>, then the note type will have id <code class="literal">/user/wanda/music/note</code>. If you display details about your type in the Freebase client, you'll find the id of the type embedded in the URL displayed in your web browser's location bar. It might look like this:
+        </p>
+        <pre class="programlisting">http://sandbox.freebase.com/view/user/wanda/music/note
+</pre>
+        <p>
+          For the rest of this chapter, the queries will use types in the domain <code class="literal">/user/docs/music</code>. When you run the queries, replace "docs" with your own username, and, if you did not create your own music domain, replace "music" with "default_domain".
+        </p>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title">
+                <a id="objectcreation" name="objectcreation"></a>5.2. Creating Objects
+              </h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          Let's begin with a very simple write query:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "create":"unless_exists",
+  "type":"/user/docs/music/note",
+  "name":"A",
+  "id":null
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "create":"created",
+  "type":"/user/docs/music/note",
+  "name":"A",
+  "id":"/guid/9202a8c04000641f8000000000037ffc"
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          The first line of the query says that we want to create a new object, unless a matching object already exists. The second line specifies the type of the object we're creating (remember to substitute your own user name for "docs" here). The third line specifies a value for the <code class="literal">name</code> property of the new object. The fourth line of the write query is a request for the <code class="literal">id</code> of the newly created object. Asking for an id is the only way you are allowed to use <code class="literal">null</code> in a write query. You may not use <code class="literal">null</code> (or <code class="literal">[]</code>) as the value of any property other than <code class="literal">id</code> (or <code class="literal">guid</code>).
+        </p>
+        <p>
+          Now let's look at the response to the write query. The first line is the <code class="literal">create</code> property, but its value has changed from <code class="literal">unless_exists</code> to <code class="literal">created</code>. This tells us that the object we specified did not already exist, and Metaweb has created it for us. The second and third lines simply repeat the <code class="literal">type</code> and <code class="literal">name</code> properties that we passed in. They don't provide any new information, but maintain the MQL invariant that responses have the same properties as queries. Finally, the fourth line returns the id of the newly created object.
+        </p>
+        <div class="sidebar">
+          <p class="title">
+            <b>Metaweb IDs in this Tutorial</b>
+          </p>
+          <p>
+            The object ids used in this tutorial were created on the sandbox server, and are no longer valid, so you should not try to query these objects directly. Instead, substitute your own user name into the write queries, and create your own objects, with their own ids, as you follow along with this tutorial. If you are reading a printed or PDF version of this chapter, note that ids in the <code class="literal">/guid</code> namespace have been shortened so that they fit more easily in two-column format.
+          </p>
+        </div>
+        <p>
+          Now let's see what happens if we run exactly the same query again:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "create":"unless_exists",
+  "type":"/user/docs/music/note",
+  "name":"A",
+  "id":null
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "create":"existed",
+  "type":"/user/docs/music/note",
+  "name":"A",
+  "id":"/guid/9202a8c04000641f8000000000037ffc"
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          We're asking that an object be created unless it already exists. And this time it does already exist. So Metaweb returns the <code class="literal">existed</code> as the value of the <code class="literal">create</code> property, and returns the <code class="literal">id</code> of the already existing object. Note that this id is the same as the one we've already seen.
+        </p>
+        <p>
+          Now let's force Metaweb to create another new test object for us:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "create":"unconditional",
+  "type":"/user/docs/music/note",
+  "name":"A",
+  "id":null
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "create":"created",
+  "type":"/user/docs/music/note",
+  "name":"A",
+  "id":"/guid/9202a8c04000641f800000000003800f"
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          In this query, we've changed the value of the <code class="literal">create</code> directive to <code class="literal">unconditional</code>. As its name implies, this value tells Metaweb to create a new object no matter what. Since a new object is created unconditionally, the value of the <code class="literal">create</code> property in the response will always be <code class="literal">created</code>. You can see that a new object was created by comparing the <code class="literal">id</code> returned by this query to those returned by the previous two queries.
+        </p>
+        <div class="sidebar">
+          <p class="title">
+            <b>When to use create:unconditional</b>
+          </p>
+          <p>
+            Metaweb is an "identity database", intended to have only one copy of each object. So it is usually not necessary or correct to use <code class="literal">"create":"unconditional"</code> in a MQL write query. Most writes use <code class="literal">"create":"unless_exists"</code>, and many others use <code class="literal">"create":"unless_connected"</code>, which has not been introduced yet. Using "unconditional" leads to duplicate objects, and as we'll see below, this can get you into trouble!
+          </p>
+        </div>
+        <p>
+          We now have two note objects with the name "A". What happens if we run the original <code class="literal">unless_exists</code> write again?
+        </p>
+        <pre class="programlisting">{
+  "code" : "/api/status/error",
+  "messages" : [
+    {
+      "code" : "/api/status/error/mql/result",
+      "info" : {
+        "count" : 2,
+        "guids" : [
+          "#9202a8c04000641f8000000000037ffc",
+          "#9202a8c04000641f800000000003800f"
+        ]
+      },
+      "message" : "Need a unique result to attach here, not 2",
+      "path" : "",
+      "query" : {
+        "create" : "unless_exists",
+        "error_inside" : ".",
+        "id" : null,
+        "name" : "A",
+        "type" : "/user/docs/music/note"
+      }
+    }
+  ]
+}
+</pre>
+        <p>
+          The query fails this time, and returns the JSON object shown above. The <code class="literal">"create":"unless_exists"</code> directive works only if there are 0 or 1 instances of the object. If there is no object that matches, it creates one. If there is one object that matches, it returns it. But if there are more than one, it has no way to choose which one to return, and fails with an error message. Note that the query fails even if we omit <code class="literal">"id":null</code>. The lesson here is that if you plan to use <code class="literal">unless_exists</code>, you should use it consistently so you never end up with more than one instance of an object.
+        </p>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title">
+                <a id="objectconnection" name="objectconnection"></a>5.3. Connecting Objects
+              </h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          So far we've created two distinct objects with identical types and names. Let's now rename one so we can tell them apart by name. Recall that an object is named by linking it to a primitive value of <code class="literal">/type/text</code>. We want to update the <code class="literal">name</code> link to refer to a different value:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f800000000003800f",
+  "name":{
+    "connect":"update",
+    "value":"B",
+    "lang":"/lang/en"
+  }
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f800000000003800f",
+  "name":{
+    "connect":"updated",
+    "value":"B",
+    "lang":"/lang/en"
+  }
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          The first line of the query identifies, by id, the object we want to modify. The second and third lines specify that want to update the <code class="literal">name</code> property of that object so that it refers to the <code class="literal">/type/text</code> value specified by the 4th and 5th lines. (Recall that <code class="literal">/type/text</code> is a primitive value that consists of a string of text and a language identifier for that text. MQL write queries require you to specify both the <code class="literal">value</code> and <code class="literal">lang</code> properties when manipulating a name.)
+        </p>
+        <p>
+          The response looks just like the query except that the value of the <code class="literal">connect</code> property has changed to <code class="literal">updated</code>. This tells us that the update we requested has been performed.
+        </p>
+        <p>
+          What happens if we run exactly the same write query again?
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f800000000003800f",
+  "name":{
+    "connect":"update",
+    "value":"B",
+    "lang":"/lang/en"
+  }
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f800000000003800f",
+  "name":{
+    "connect":"present",
+    "value":"B",
+    "lang":"/lang/en"
+  }
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          We're asking to make a change that has already been made, and Metaweb lets us know this by setting the <code class="literal">connect</code> property of the response to <code class="literal">present</code>.
+        </p>
+        <p>
+          We now have two newly-created objects with the same type and different names. We changed the name of the second object by updating a <code class="literal">/type/text</code> value. <code class="literal">/type/text</code> is a primitive type in Metaweb, so this isn't quite the same thing as a link between two different objects in the database. Now, let's modify the first object (the note A) so that it is a <code class="literal">/common/topic</code> in addition to being a note:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f8000000000037ffc",
+  "type":{
+    "connect":"insert",
+    "id":"/common/topic"
+  }
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f8000000000037ffc",
+  "type":{
+    "connect":"inserted",
+    "id":"/common/topic"
+  }
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          The first line of the query specifies the object to be modified. The second and third lines specify that we want to insert a new connection between this object and another object, and that this new connection should use the <code class="literal">type</code> property. The fourth line specifies, by id, the object that is being connected to.
+        </p>
+        <p>
+          Note that the value of the <code class="literal">connect</code> directive is <code class="literal">insert</code> instead of <code class="literal">update</code>, which is what we used above. The difference between the two is simple. Use <code class="literal">"connect":"update"</code> for properties that have a unique value (and for the <code class="literal">name</code> property, which is unique on a per-language basis). Use <code class="literal">"connect":"insert"</code> for properties, such as <code class="literal">type</code>, that can have more than one value. You are also allowed to use <code class="literal">"connect":"insert"</code> with unique properties if there is not already a value for that property. In scripts that query links or use reflection (see <a class="xref" href="http://mql.freebaseapps.com/ch03.html#links" title="3.7. Links, Reflection and History">Section 3.7</a>) you may sometimes have to craft a MQL write query without knowing whether a particular property is unique or not. In that case, use "replace" instead of "update" or "insert". <code class="literal">"connect":"replace"</code> does an update for unique properties and does an insert for non-unique properties. <code class="literal">"connect":"replace"</code> is also useful if you have reason to believe that a property that is currently unique may in the future be relaxed to allow multiple values.
+        </p>
+        <p>
+          The response to the query above sets the value of the <code class="literal">connect</code> directive to <code class="literal">inserted</code>, telling us that the insertion was successful. Our note named "A" is now also a <code class="literal">/common/topic</code>, which means that we can associate images, documents and aliases with the object.
+        </p>
+        <p>
+          What happens if we run the same query again?
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f8000000000037ffc",
+  "type":{
+    "connect":"insert",
+    "id":"/common/topic"
+  }
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f8000000000037ffc",
+  "type":{
+    "connect":"present",
+    "id":"/common/topic"
+  }
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          We're asking to insert <code class="literal">/common/topic</code> into a set of types that already includes <code class="literal">/common/topic</code>, and we get the response <code class="literal">present</code>. It tells us that this value is already in the set and that nothing has changed. (Non-unique properties in Metaweb are like sets: they do not allow duplicates.)
+        </p>
+        <div class="sidebar">
+          <p class="title">
+            <b>Idempotent Writes</b>
+          </p>
+          <p>
+            One of the important features of writes in Metaweb (assuming you avoid unconditional node creation) is that they are <span class="emphasis"><em>idempotent</em></span>: you can safely make a write request multiple times. A write request can be thought of as an assertion of the desired state of the database. If the database is already in that state, nothing is done. Otherwise, insertions and deletions are performed as necessary to make the database match the assertion.
+          </p>
+        </div>
+        <p>
+          Let's do a quick read query to confirm that our object is a member of two types:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Read
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f8000000000037ffc",
+  "type":[]
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f8000000000037ffc",
+  "type":[
+    "/user/docs/music/note",
+    "/common/topic"
+  ]
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          So we see that our object is, in fact, a note and a topic.
+        </p>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title">
+                <a id="objectdisconnection" name="objectdisconnection"></a>5.4. Disconnecting Objects
+              </h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          We've seen that Metaweb allows us to connect objects with <code class="literal">"connect":"insert"</code> or <code class="literal">"connect":"update"</code>. To disconnect objects, use <code class="literal">"connect":"delete"</code>. Let's alter the object that represents the note A again, to remove <code class="literal">/common/topic</code> from its set of types:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f8000000000037ffc",
+  "type":{
+    "connect":"delete",
+    "id":"/common/topic"
+  }
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f8000000000037ffc",
+  "type":{
+    "connect":"deleted",
+    "id":"/common/topic"
+  },
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          This query looks just like the query we used to add the type, except that we've changed "insert" to "delete". And Metaweb's response looks just like the response to the insertion, except that "inserted" has changed to "deleted".
+        </p>
+        <p>
+          At this point, you probably have a pretty good idea what will happen if we re-run the query:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f8000000000037ffc",
+  "type":{
+    "connect":"delete",
+    "id":"/common/topic"
+  }
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f8000000000037ffc",
+  "type":{
+    "connect":"absent",
+    "id":"/common/topic"
+  }
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          We asked Metaweb to remove <code class="literal">/common/topic</code> from a set that did not contain <code class="literal">/common/topic</code>, so it returned "absent" to indicate that nothing has been changed.
+        </p>
+        <p>
+          The MQL write grammar has no syntax for deleting objects themselves. The closest thing to deleting an object is to delete all connections from that object to others. If an object has no type, no name, and no other properties of interest, then it becomes effectively unreachable, and is almost as good as gone. <sup>[<a class="footnote" href="http://mql.freebaseapps.com/ch05#ftn.id2966499" id="id2966499" name="id2966499">22</a>]</sup>
+        </p>
+        <p>
+          When an object has had all its links deleted, it can still be queried by <code class="literal">id</code>, <code class="literal">guid</code> or <code class="literal">creator</code> (Metaweb does not allow these read-only properties to be deleted.) In practice, however, unreachable objects will only be found by determined searchers, and their continued existence is very unlikely to affect the results of future queries. Unreachable objects may at some point be purged from a Metaweb database, but their guids will <span class="emphasis"><em>never</em></span> be reused.
+        </p>
+        <p>
+          Let's use this unlinking technique to "delete" the two note objects we've created:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">[{
+  "id":"/guid/9202a8c04000641f8000000000037ffc",
+  "type":{
+    "connect":"delete",
+    "id":"/user/docs/music/note"
+  },
+  "name":{
+    "connect":"delete",
+    "value":"A",
+    "lang":"/lang/en"
+  }
+},{
+  "id":"/guid/9202a8c04000641f800000000003800f",
+  "type":{
+    "connect":"delete",
+    "id":"/user/docs/music/note"
+  },
+  "name":{
+    "connect":"delete",
+    "value":"B",
+    "lang":"/lang/en"
+  }
+}]
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">[{
+  "id":"/guid/9202a8c04000641f8000000000037ffc",
+  "type":{
+    "connect":"deleted",
+    "id":"/user/docs/music/note"
+  },
+  "name":{
+    "connect":"deleted",
+    "value":"A",
+    "lang":"/lang/en"
+  }
+},{
+  "id":"/guid/9202a8c04000641f800000000003800f",
+  "type":{
+    "connect":"deleted",
+    "id":"/user/docs/music/note"
+  },
+  "name":{
+    "connect":"deleted",
+    "value":"B",
+    "lang":"/lang/en"
+  }
+}]
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Note that this write query is really two separate queries, included within square brackets. The <span class="emphasis"><em>mqlwrite</em></span> service (the topic of <a class="xref" href="http://mql.freebaseapps.com/ch06.html" title="Chapter 6. Metaweb Write Services">Chapter 6</a>) accepts submissions of multiple writes at once. Note that names are deleted with <code class="literal">"connect":"delete"</code>, even though they are unique and were originally created with <code class="literal">"connect":"update"</code>. You must specify the <code class="literal">lang</code> property explicitly when deleting a name.
+        </p>
+        <p>
+          As a final test, let's query the first of these objects and find out what little information it still carries:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Read
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f8000000000037ffc",
+  "*":null,
+  "/type/reflect/any_master": [{
+      "id":null,
+      "link":null,
+      "optional":true
+  }],
+  "/type/reflect/any_reverse": [{
+      "id":null,
+      "link":null,
+      "optional":true
+  }],
+  "/type/reflect/any_value": [{
+      "link":null,
+      "optional":true,
+      "value":null
+  }]
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "id" : "/guid/9202a8c04000641f8000000000037ffc",
+  "guid" : "#9202a8c04000641f8000000000037ffc",
+  "type" : [],
+  "name" : null,
+  "key" : [],
+  "creator" : "/user/docs",
+  "permission" : "/boot/all_permission",
+  "timestamp" : "2008-08-29T23:42:08.0000Z",
+  "/type/reflect/any_master" : [{
+      "id" : "/boot/all_permission",
+      "link" : "/type/object/permission"
+  }],
+  "/type/reflect/any_reverse" : [],
+  "/type/reflect/any_value" : []
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          As expected, the name and types of the object are gone. All that remains are its id, creator, timestamp, and permission.
+        </p>
+        <div class="sidebar">
+          <p class="title">
+            <b>Multiple Queries and Atomicity</b>
+          </p>
+          <p>
+            When you submit multiple top-level write queries to Metaweb at the same time, it is natural to ask whether they are executed in order, and whether a query can depend on an object created by a previous query. The answer to both questions is no. The reason is a good one, however: when multiple queries are submitted at the same time, they are executed atomically: all are executed or none are executed.
+          </p>
+          <p>
+            In order to implement this atomic behavior, the Metaweb server first tests each query to determine whether it will succeed. It does this without actually executing the query. If all queries pass the test, then all are executed. Note, however, that this means that each query must be able to succeed before any other queries have been run. Therefore, the queries must be completely independent of each other. And since they are independent, there is really no way to tell what order Metaweb executes them in.
+          </p>
+          <p>
+            Although Metaweb allows multiple writes to be executed atomically, Metaweb engineers recommend keeping your writes simple and executing them one at a time whenever you can. This avoids server timeouts and makes debugging much easier if something goes wrong!
+          </p>
+        </div>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title">
+                <a id="defaultpropertyinwrite" name="defaultpropertyinwrite"></a>5.5. Writes and Default Properties
+              </h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          Take a look again at the MQL write queries we use to create and "delete" Note objects. First, the creation:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "create":"unless_exists",
+  "type":"/user/docs/music/note",
+  "name":"C#",
+  "id":null
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "create":"created",
+  "type":"/user/docs/music/note",
+  "name":"C#",
+  "id":"/guid/9202a8c04000641f800000000104befe"
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Now contrast this with the query that "deletes" the object by unlinking its type and name:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f800000000104befe",
+  "type":{
+    "connect":"delete",
+    "id":"/user/docs/music/note"
+  },
+  "name":{
+    "connect":"delete",
+    "value":"C#",
+    "lang":"/lang/en"
+  }
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f800000000104befe",
+  "type":{
+    "connect":"deleted",
+    "id":"/user/docs/music/note"
+  },
+  "name":{
+    "connect":"deleted",
+    "value":"C#",
+    "lang":"/lang/en"
+  }
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          The creation query is much more compact because we are able to specify the type as a single id and the name as a single string. In the deletion query, we must specify the expanded objects. There are three factors that interact to make the creation query shorter. First, recall from <a class="xref" href="http://mql.freebaseapps.com/ch03.html" title="Chapter 3. The Metaweb Query Language">Chapter 3</a> that every type has a <span class="emphasis"><em>default property</em></span>. For value types such as <code class="literal">/type/text</code> (the type of the <code class="literal">name</code> property) the default property is <code class="literal">value</code>. For core types in the <code class="literal">/type</code> domain, the default property is <code class="literal">id</code>. For all other types, the default property is <code class="literal">name</code>. So in the creation query, <code class="literal">"type":"/user/docs/music/note"</code> is shorthand (but see the caution below!) for:
+        </p>
+        <pre class="programlisting">"type": { "id":"/user/docs/music/note" }
+</pre>
+        <p>
+          The second factor that makes the creation query so compact is the fact that when you specify a default property rather than a full object in a MQL write query, Metaweb assumes an implicit <code class="literal">"connect":"insert"</code>. So writing <code class="literal">"type":"/user/docs/music/note"</code> is kind of (but not exactly: see the caution that follows) like writing:
+        </p>
+        <pre class="programlisting">"type": {
+  "connect":"insert",
+  "id":"/user/docs/music/note"
+}
+</pre>
+        <p>
+          The third factor that makes the creation query compact is that the language of <code class="literal">/type/text</code> values is automatically set to the default of English.
+        </p>
+        <p>
+          All three factors come into play when we write <code class="literal">"name":"C#"</code>. "C#" becomes the value of the default property, which is the <code class="literal">value</code>. An implicit <code class="literal">"connect":"insert"</code> is added. And a <code class="literal">lang</code> property is added to specify <code class="literal">/lang/en</code>, or whatever language we are using. So <code class="literal">"name":"C#"</code> expands to (but see the caution!):
+        </p>
+        <pre class="programlisting">"name": {
+  "connect":"insert",
+  "value":"C#",
+  "lang":"/lang/en"
+}
+</pre>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="id2966978" name="id2966978"></a>5.5.1. Caution: unless_exists with Expanded Objects
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            From the explanation above, you might assume that the compact creation query with which we began this section could be equivalently (but less compactly written) as:
+          </p>
+          <pre class="programlisting">{
+  "create":"unless_exists",
+  "id":null,
+  "name": "C#",
+  "type": {
+    "connect":"insert",
+    "id":"/user/docs/music/note"
+  }
+}
+</pre>
+          <p>
+            If the queries used <code class="literal">"create":"unconditional"</code> then they would be the same. But the meaning of <code class="literal">unless_exists</code> is different for the two queries. The original compact query could be translated as <span class="emphasis"><em>If you can find a Note object named "C#", return its id. Otherwise, create a new Note object, name it "C#", and return its id.</em></span>
+          </p>
+          <p>
+            But this variant that expands the <code class="literal">type</code> property is different in a subtle but important way. It tells Metaweb: <span class="emphasis"><em>find or create an object named "C#", and then add Note to its set of types</em></span>. The difference between the two queries is critical if there is already an object (of type <code class="literal">/programming/language</code>, perhaps) with the name "C#".
+          </p>
+          <p>
+            Here's another way to think about this. When the type is specified by id, this is a constraint on the query. Metaweb must find an object that matches, or must construct one. When the type is specified in a sub-query with an explicit <code class="literal">connect</code> directive the sub-query is not a constraint, and does not affect the results of the <code class="literal">unless_exists</code> search.
+          </p>
+        </div>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title">
+                <a id="advancedcreateconnect" name="advancedcreateconnect"></a>5.6. Creating and Connecting More Objects
+              </h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          In order to try some more advanced MQL write queries, we need to add a property to our Note type. Like types themselves, properties are just Metaweb objects, and can be created with MQL writes. It is tricky to do this in practice, however, and the <span class="emphasis"><em>freebase.com</em></span> client makes it easy to add properties. Start by viewing the <span class="emphasis"><em>schema</em></span> page for your Note type. You can navigate to this page using links in the client, or enter its URL directly into your browser:
+        </p>
+        <pre class="programlisting">http://sandbox.freebase.com/type/schema/user/docs/music/note
+</pre>
+        <p>
+          On this schema page, you'll find a user interface for adding new properties. Create a property with name and key set to <code class="literal">next</code> and with its expected type set to the Note type. Also, make the property unique, so that it is restricted to one value. This newly created property links one Note object to another, and we'll use it to link notes to their perfect fifth – the note that is 7 semitones higher (usually, this is 5 white keys on a piano keyboard, which is probably why it is called a fifth.) If we start with the note C, we find that it's fifth is the note G. Let's create Note objects to represent the notes C and G. Note that the following query is two independent queries in an array:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">[{
+  "create":"unless_exists",
+  "id":null,
+  "type":"/user/docs/music/note",
+  "name":"C"
+},{
+  "create":"unless_exists",
+  "id":null,
+  "type":"/user/docs/music/note",
+  "name":"G"
+}]
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">[{
+  "create":"created",
+  "id":"/guid/9202a8c04000641f80000000000384b0",
+  "type":"/user/docs/music/note",
+  "name":"C"
+},{
+  "create":"created",
+  "id":"/guid/9202a8c04000641f80000000000384b4",
+  "type":"/user/docs/music/note",
+  "name":"G"
+}]
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          We've asked Metaweb to create two Note objects, with names C and G, and to return their ids to us. Now, let's insert the link that indicates that G is the fifth of C:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f80000000000384b0",
+  "/user/docs/music/note/next":{
+    "connect":"update",
+    "id":"/guid/9202a8c04000641f80000000000384b4"
+  }
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/guid/9202a8c04000641f80000000000384b0",
+  "/user/docs/music/note/next":{
+    "connect":"inserted",
+    "id":"/guid/9202a8c04000641f80000000000384b4"
+  }
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          This compact query identifies both note objects by id and connects them with a <code class="literal">connect</code> directive. Since we defined the <code class="literal">next</code> property to be unique, it uses <code class="literal">"connect":"update"</code> instead of <code class="literal">"connect":"insert"</code>. Note that since this query never specifies the type of the objects, we must use a fully-qualified property name for the <code class="literal">next</code> property. You can verify that this query did what we intended using the <span class="emphasis"><em>freebase.com</em></span> client. Visit My Freebase on <span class="emphasis"><em>sandbox.freebase.com</em></span>, and click on the Note type. On the page for the Note type, you should see a list of instances of that type. Click on the one named "C", and you'll see that it includes a hyperlink labeled "Next" to the note G.
+        </p>
+        <p>
+          The linking technique shown above is straightforward and easy to understand. It uses one query to create (or look up) the two objects to be linked. Then it uses a second simple query to connect the two objects. It is usually possible, however, to combine the creation and linking into a single query. The following query, for example, sets the <code class="literal">next</code> property of the note G to a newly-created note named D:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/note",
+  "name":"G",
+  "next":{
+    "create":"unless_exists",
+    "type":"/user/docs/music/note",
+    "name":"D"
+  }
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/note",
+  "name":"G",
+  "next":{
+    "create":"created",
+    "type":"/user/docs/music/note",
+    "name":"D"
+  }
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Notice that there is no <code class="literal">connect</code> directive here. Since the <code class="literal">create</code> directive is nested in this query, the connection is implicit.
+        </p>
+        <p>
+          Here's a longer query of the same sort:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "create":"unless_exists",
+  "type":"/user/docs/music/note",
+  "name":"B flat",
+  "next":{
+    "create":"unless_exists",
+    "type":"/user/docs/music/note",
+    "name":"F",
+    "next":{
+      "create":"unless_exists",
+      "type":"/user/docs/music/note",
+      "name":"C"
+    }
+  }
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "create":"created",
+  "type":"/user/docs/music/note",
+  "name":"B flat",
+  "next":{
+    "create":"created",
+    "type":"/user/docs/music/note",
+    "name":"F",
+    "next":{
+      "create":"connected",
+      "type":"/user/docs/music/note",
+      "name":"C"
+    }
+  }
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          This query creates a note F and links it to the existing note C, and then creates a note B flat and links it to the new note F. Note that the query uses <code class="literal">"create":"unless_exists"</code> three times. The response includes "created" twice for the newly created notes. But for the note C, which already exists, the response says <code class="literal">"create":"connected"</code>. This tells us that the note C already existed, but that a new connection has been made to it. If we rerun the query, we get <code class="literal">"create":"existed"</code> all three times, since the objects and links already exist.
+        </p>
+        <p>
+          The following query is like the one above, but shorter, and with one important tweak:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "create":"unless_exists",
+  "type":"/user/docs/music/note",
+  "name":"E flat",
+  "next":{
+    "create":"unless_connected",
+    "type":"/user/docs/music/note",
+    "name":"B flat"
+  }
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "create":"created",
+  "type":"/user/docs/music/note",
+  "name":"E flat",
+  "next":{
+    "create":"created",
+    "type":"/user/docs/music/note",
+    "name":"B flat"
+  }
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          This query creates a new note E flat, and connects it to B flat. Notice, however, that in the nested clause of the query, we used a different form of the <code class="literal">create</code> directive: <code class="literal">"create":"unless_connected"</code>. And in the response we have a <code class="literal">"create":"created"</code>. If you examine the list of Note instances in the <span class="emphasis"><em>freebase.com</em></span> client, you'll see that there are now two of them named "B flat". If you use <code class="literal">unless_connected</code>, then Metaweb looks for a matching object that is already connected. If it cannot find one, it creates a new one and connects it. In this case, there was an existing Note object named B flat, but it was not already connected, so the query created a new one. If we re-run the query, however, it simply returns <code class="literal">"create":"existed"</code> because the object and the connection exist.
+        </p>
+        <p>
+          Note that <code class="literal">unless_connected</code> only makes sense in nested clauses. If we change the outermost <code class="literal">unless_exists</code> in the query above to <code class="literal">unless_connected</code>, Metaweb complains: <span class="emphasis"><em>Can't use 'create': 'unless_connected' at the root of the query</em></span>.
+        </p>
+        <div class="sidebar">
+          <p class="title">
+            <b>When to use unless_connected</b>
+          </p>
+          <p>
+            <code class="literal">"create":"unless_connected"</code> directive is relatively infrequently used. Use it when objects must be unique within their "parent". One example of this is in the <code class="literal">/film</code> domain, where a <code class="literal">/film/performance</code> (an actor/character pair) can be linked to only one <code class="literal">/film/film</code>. Johnny Depp plays the character Jack Sparrow in more than one film, and there is a separate <code class="literal">/film/performance</code> object to represent each of those performances. If you were crafting a MQL query to create an object representing the film <span class="emphasis"><em>Pirates of the Caribbean V: Jumping the Shark</em></span>, therefore, you would use <code class="literal">unless_connected</code> to link Depp's performance to the film. If you mistakenly used <code class="literal">unless_exists</code>, Metaweb would try (and fail because of the uniqueness requirement) to create a link to an existing Depp/Sparrow performance.
+          </p>
+        </div>
+        <p>
+          Let's clean up the extra B flat object we created:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/note",
+  "name":"E flat",
+  "next":{
+    "connect":"delete",
+    "type":{
+      "connect":"delete",
+      "id":"/user/docs/music/note"
+    },
+    "name":{
+      "connect":"delete",
+      "value":"B flat",
+      "lang":"/lang/en"
+     }
+  }
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/note",
+  "name":"E flat",
+  "next":{
+    "connect":"deleted",
+    "type":{
+      "connect":"deleted",
+      "id":"/user/docs/music/note"
+    },
+    "name":{
+      "connect":"deleted",
+      "value":"B flat",
+      "lang":"/lang/en"
+    }
+  }
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Note that the query above does two things. It disconnects the name and type of the extra B flat object, and also disconnects that object from E flat. Now all we have to do is connect E flat to the valid B flat object. This should be easy for you now:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/note",
+  "name":"E flat",
+  "next":{
+    "connect":"insert",
+    "type":"/user/docs/music/note",
+    "name":"B flat"
+  }
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/note",
+  "name":"E flat",
+  "next":{
+    "connect":"inserted",
+    "type":"/user/docs/music/note",
+    "name":"B flat"
+  }
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title">
+                <a id="writedirectives" name="writedirectives"></a>5.7. Review: Write Directives
+              </h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          At this stage of the tutorial, you've seen all the variations of the <code class="literal">create</code> and <code class="literal">connect</code> directives. Let's do a quick review before diving in to some more advanced examples.
+        </p>
+        <p>
+          The <code class="literal">create</code> directive comes in three forms:
+        </p>
+        <div class="variablelist">
+          <dl>
+            <dt>
+              <span class="term"><code class="literal">"create":"unless_exists"</code></span>
+            </dt>
+            <dd>
+              <p>
+                Look for the object in the database and create a new one if a match cannot be found.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">"create":"unless_connected"</code></span>
+            </dt>
+            <dd>
+              <p>
+                Look for a matching object that already exists and is already connected to the parent query. If no such object exists, create and connect a new one.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">"create":"unconditional"</code></span>
+            </dt>
+            <dd>
+              <p>
+                Always create the specified object. It is almost never necessary or appropriate to use this form of the <code class="literal">create</code> directive.
+              </p>
+            </dd>
+          </dl>
+        </div>
+        <p>
+          The possible responses to a <code class="literal">create</code> directive are the following:
+        </p>
+        <div class="variablelist">
+          <dl>
+            <dt>
+              <span class="term"><code class="literal">"create":"created"</code></span>
+            </dt>
+            <dd>
+              <p>
+                Indicates that a new object has been created. This is always the response for <code class="literal">unconditional</code> directives, but may also be returned by <code class="literal">unless_exists</code> and <code class="literal">unless_connected</code> directives.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">"create":"existed"</code></span>
+            </dt>
+            <dd>
+              <p>
+                Indicates that a pre-existing match was found and no object was created. This may be returned by <code class="literal">unless_exists</code> or <code class="literal">unless_connected</code> directives.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">"create":"connected"</code></span>
+            </dt>
+            <dd>
+              <p>
+                Indicates that the object already existed but a connection has been made. This response is only possible for <code class="literal">unless_exists</code> directives that are nested within a parent query.
+              </p>
+            </dd>
+          </dl>
+        </div>
+        <p>
+          The four forms of the <code class="literal">connect</code> directive are:
+        </p>
+        <div class="variablelist">
+          <dl>
+            <dt>
+              <span class="term"><code class="literal">"connect":"insert"</code></span>
+            </dt>
+            <dd>
+              <p>
+                Use this form to attach a value or object to a non-unique property. It can also be used to attach the first value or object to a unique property.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">"connect":"update"</code></span>
+            </dt>
+            <dd>
+              <p>
+                Use this form to attach a value or object to a unique property, replacing any value or object that was previously connected.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">"connect":"replace"</code></span>
+            </dt>
+            <dd>
+              <p>
+                This form does an update if the property is unique and does an insert otherwise. It is rarely necessary to use this type of connect.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">"connect":"delete"</code></span>
+            </dt>
+            <dd>
+              <p>
+                Use this form to detach a value or object from a property. It works for unique and non-unique properties.
+              </p>
+            </dd>
+          </dl>
+        </div>
+        <p>
+          There are five possible responses to a <code class="literal">connect</code> query:
+        </p>
+        <div class="variablelist">
+          <dl>
+            <dt>
+              <span class="term"><code class="literal">"connect":"inserted"</code></span>
+            </dt>
+            <dd>
+              <p>
+                Indicates that an <code class="literal">insert</code> directive was successful.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">"connect":"updated"</code></span>
+            </dt>
+            <dd>
+              <p>
+                Indicates that an <code class="literal">update</code> directive was successful.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">"connect":"deleted"</code></span>
+            </dt>
+            <dd>
+              <p>
+                Indicates that a <code class="literal">delete</code> directive was successful.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">"connect":"present"</code></span>
+            </dt>
+            <dd>
+              <p>
+                Indicates that an <code class="literal">insert</code> or <code class="literal">update</code> directive was unsuccessful because the specified connection was already present.
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><code class="literal">"connect":"absent"</code></span>
+            </dt>
+            <dd>
+              <p>
+                Indicates that a <code class="literal">delete</code> directive was not successful because the connection to be deleted did not exist.
+              </p>
+            </dd>
+          </dl>
+        </div>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title">
+                <a id="writingsets" name="writingsets"></a>5.8. Working with Sets
+              </h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          The most interesting examples we've explored so far have used the <code class="literal">next</code> property of our Note type. We defined this property to be unique – so that it can have only one value. There are some features of the MQL write grammar that only become apparent when used on non-unique properties, however. Let's define a Chord type and give it a non-unique property named <code class="literal">note</code> which links to Note objects. (By convention, we use a singular property name, even though we expect each Chord object to refer to multiple Note objects.) Create this type and its property on <em class="replaceable"><code>sandbox.freebase.com</code></em> by repeating the steps you followed to define the Note type and its <code class="literal">next</code> property. Just change the names to Chord and <code class="literal">note</code>, and don't check the "Restrict to one value" box. The examples that follow assume that the id of the new Chord type is <code class="literal">/user/docs/music/chord</code>. You'll need to substitute your own username into the queries as you follow along.
+        </p>
+        <p>
+          Once the new type is created, let's define a chord using the notes C, E, and G:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "create":"unless_exists",
+  "name":"CEG",
+  "type":[
+    "/common/topic",
+    "/user/docs/music/chord"
+  ],
+  "note":[{
+    "create":"unless_exists",
+    "type":"/user/docs/music/note",
+    "name":"C"
+  },{
+    "create":"unless_exists",
+    "type":"/user/docs/music/note",
+    "name":"G"
+  },{
+    "create":"unless_exists",
+    "type":"/user/docs/music/note",
+    "name":"E"
+  }]
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "create":"created",
+  "name":"CEG",
+  "type":[
+    "/common/topic",
+    "/user/docs/music/chord"
+  ],
+  "note":[{
+    "create":"connected",
+    "type":"/user/docs/music/note",
+    "name":"C"
+  },{
+    "create":"connected",
+    "type":"/user/docs/music/note",
+    "name":"G"
+  },{
+    "create":"created",
+    "type":"/user/docs/music/note",
+    "name":"E"
+  }]
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Several things immediately stand out about this query:
+        </p>
+        <div class="itemizedlist">
+          <ul>
+            <li>
+              <p>
+                It specifies the ids of two types within a JSON array. The created object will be both a Chord and a Topic. (We'll say more about arrays in write queries below).
+              </p>
+            </li>
+            <li>
+              <p>
+                It specifies three notes, as expanded objects, within a JSON array. These are the set of values for the <code class="literal">note</code> property of the chord.
+              </p>
+            </li>
+            <li>
+              <p>
+                Note objects C and G exist already, so the response to the <code class="literal">"create":"unless_exists"</code> directive for these two notes is <code class="literal">"create":"connected"</code> to indicate that an already-existing object was connected. (Since we knew ahead of time that these two notes already existed, we could have used <code class="literal">"connect":"insert"</code> instead.) Since note E did not exist, the response includes <code class="literal">"connect":"created"</code> indicating that the note object was created and connected.
+              </p>
+            </li>
+          </ul>
+        </div>
+        <p>
+          So far in this chapter, we've only seen square brackets in write queries when we were bundling up multiple top-level queries to be submitted to Metaweb in a single batch. The MQL write grammar is actually more general than this: nested queries can also be collected into an array, and this allows us to connect more than one value to a property. In the case of the <code class="literal">type</code> property, our query specifies two types by their <code class="literal">id</code>. As we discussed earlier, types can be specified by id because <code class="literal">id</code> is the default property of <code class="literal">/type/type</code>. When types are specified this way, <code class="literal">"connect":"insert"</code> is assumed.
+        </p>
+        <div class="sidebar">
+          <p class="title">
+            <b>Multiple Types and Unqualified Property Names</b>
+          </p>
+          <p>
+            When we specify more than one type for an object, we use a JSON array. But the Metaweb object model represents the types as an unordered set, so the order in which we specify them should not matter. In fact, however, it does. The last type in the array of types is used to qualify any unqualified property names that are not <code class="literal">/type/object</code> properties.
+          </p>
+          <p>
+            In the query above, if we had specified <code class="literal">/user/docs/music/chord</code> first, and <code class="literal">/common/topic</code> second, then Metaweb would have assumed that the unqualified <code class="literal">note</code> property meant <code class="literal">/common/topic/note</code>, and this would have caused an error since there is no such property. If you don't want to rely on the order of the types, you can just be explicit and use the fully-qualified names of all properties, such as <code class="literal">/user/docs/music/chord/note</code>.
+          </p>
+        </div>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title">
+                <a id="reverseproperties" name="reverseproperties"></a>5.9. Reciprocal Properties
+              </h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          One of the fundamental aspects of Metaweb is that all links between nodes are bi-directional. Our CEG Chord node has links to the nodes that represent the notes C, E, and G. Those links are bi-directional, which means that the C, E, and G nodes are linked to the CEG Chord node. The links are there, but our Note type doesn't define a appropriate property that exposes those links in the object-oriented view of the database.
+        </p>
+        <p>
+          The Freebase client makes it very easy to define such a property. View the schema of your note type by entering a URL like this:
+        </p>
+        <pre class="programlisting">http://sandbox.freebase.com/type/schema/user/docs/music/note
+</pre>
+        <p>
+          In addition to listing the properties defined by the Note type, this page also lists the "incoming properties" that have Note as their expected type. This list of incoming properties includes an option to create a reciprocal or "return property". A good name for the reciprocal of the <code class="literal">chord/note</code> property is, of course, <code class="literal">note/chord</code>. Since you now have a pair of properties, you can take advantage of the bi-directional nature of the links between chords and notes.
+        </p>
+        <p>
+          Let's experiment with this. First, we'll query the Chord CEG to find out what notes it contains:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Read
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/chord",
+  "name":"CEG",
+  "note":[]
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/chord",
+  "name":"CEG",
+  "note":["C","G","E"]
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          This result is unsurprising, given that the <code class="literal">/user/docs/music/chord/note</code> property is the one we defined originally. Now let's turn the query around and try out the reciprocal <code class="literal">/user/docs/music/note/chord</code> property we've just added. What chords is the note C a part of?
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Read
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/note",
+  "name":"C",
+  "chord":[]
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/note",
+  "name":"C",
+  "chord":["CEG"]
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          The note C "knows" that it is part of the chord CEG even though we never set its <code class="literal">chord</code> property. Setting a property automatically causes its reciprocal property to be set as well. Because links are bi-directional in Metaweb, this is all automatic.
+        </p>
+        <p>
+          Now let's create a new chord:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "create":"unless_exists",
+  "type":["/common/topic",
+          "/user/docs/music/chord"],
+  "name":"BFG"
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "create":"created",
+  "type":["/common/topic",
+          "/user/docs/music/chord"],
+  "name":"BFG"
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          We've created a chord named BFG, but we haven't added the notes B, F and G to it. To further demonstrate reciprocal properties, we'll do the reverse, and add the chord to the notes:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">[{
+  "create":"unless_exists",
+  "type":"/user/docs/music/note",
+  "name":"B",
+  "chord": {
+    "connect":"insert",
+    "type":"/user/docs/music/chord",
+    "name":"BFG"
+  }
+},{
+  "create":"unless_exists",
+  "type":"/user/docs/music/note",
+  "name":"F",
+  "chord": {
+    "connect":"insert",
+    "type":"/user/docs/music/chord",
+    "name":"BFG"
+  }
+},{
+  "create":"unless_exists",
+  "type":"/user/docs/music/note",
+  "name":"G",
+  "chord": {
+    "connect":"insert",
+    "type":"/user/docs/music/chord",
+    "name":"BFG"
+  }
+}]
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">[{
+  "create":"created",
+  "type":"/user/docs/music/note",
+  "name":"B",
+  "chord":{
+    "connect":"inserted",
+    "type":"/user/docs/music/chord",
+    "name":"BFG"
+  }
+},{
+  "create":"existed",
+  "type":"/user/docs/music/note",
+  "name":"F",
+  "chord":{
+    "connect":"inserted",
+    "type":"/user/docs/music/chord",
+    "name":"BFG"
+  }
+},{
+  "create":"existed",
+  "type":"/user/docs/music/note",
+  "name":"G",
+  "chord":{
+    "connect":"inserted",
+    "type":"/user/docs/music/chord",
+    "name":"BFG"
+  }
+}]
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          This query connects the BFG chord to the <code class="literal">chord</code> property of the notes B, F, and G. (It also creates the note B, which didn't exist yet.) Now let's ask BFG what notes it contains:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Read
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/chord",
+  "name":"BFG",
+  "note":[]
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/chord",
+  "name":"BFG",
+  "note":["B","F","G"]
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Once again, we've demonstrated that we can set a property of an object by setting the reciprocal property to refer to that object.
+        </p>
+        <p>
+          We began this section by creating the <code class="literal">/user/docs/music/note/chord</code> property as the explicit reciprocal of <code class="literal">/user/docs/music/chord/note</code>. This step is not actually necessary, however. Metaweb can traverse a link in the reverse direction even if a property describing that direction does not exist. MQL also allows us to refer to the reciprocal of a property by prefixing the property id with an exclamation mark. So in the queries above, we could replace the property <code class="literal">chord</code> with <code class="literal">!/user/docs/music/chord/note</code>. See <a class="xref" href="http://mql.freebaseapps.com/ch03.html#inverseproperty" title="3.4.4. Inverting a Property with !">Section 3.4.4</a> for further discussion.
+        </p>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title">
+                <a id="orderedcollectionwrites" name="orderedcollectionwrites"></a>5.10. Writes and Ordered Collections
+              </h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          If a Metaweb property has not been declared a unique property, it may have a set of values. As we saw in <a class="xref" href="http://mql.freebaseapps.com/ch03.html" title="Chapter 3. The Metaweb Query Language">Chapter 3</a>, these sets may be <span class="emphasis"><em>ordered</em></span>, and MQL read queries can access this order with the <code class="literal">index</code> directive. This section shows how to define an ordering with a MQL write query. Not surprisingly, this is also uses the <code class="literal">index</code> directive.
+        </p>
+        <p>
+          To demonstrate, we'll use our Chord type to represent arpeggios. An <span class="emphasis"><em>arpeggio</em></span> (or "broken chord") is a set of notes played sequentially rather than simultaneously. Since there is a sequence, there is an order, and we'll use the <code class="literal">index</code> directive to specify the order in which the notes should be played. Here's how we might create a chord with ordered notes:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "create":"unless_exists",
+  "type":"/user/docs/music/chord",
+  "name":"broken CEG",
+  "note": [{
+    "index":0,
+    "type":"/user/docs/music/note",
+    "name":"C"
+  },{
+    "index":1,
+    "type":"/user/docs/music/note",
+    "name":"E"
+  },{
+    "index":2,
+    "type":"/user/docs/music/note",
+    "name":"G"
+  }]
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "create":"created",
+  "type":"/user/docs/music/chord",
+  "name":"broken CEG",
+  "note":[{
+    "index":0,
+    "type":"/user/docs/music/note",
+    "name":"C"
+  },{
+    "index":1,
+    "type":"/user/docs/music/note",
+    "name":"E"
+  },{
+    "index":2,
+    "type":"/user/docs/music/note",
+    "name":"G"
+  }]
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Two things stand out about this query: each note has an <code class="literal">index</code> associated with it, and there are no <code class="literal">connect</code> directives. The <code class="literal">index</code> directive specifies the ordering. Remember that this ordering is not a property of the Chord, nor of the Note objects that comprise it. Instead, the indexes are properties of the links between the chord and the notes. It is not surprising, then, that using the <code class="literal">index</code> directive in a write query implicitly specifies <code class="literal">"connect":"insert"</code> for that query. You can use the <code class="literal">index</code> directive even for object that have already been inserted: in this case, the <code class="literal">index</code> directive simply re-orders the object without attempting to re-insert it. If we were creating the Note objects at the same time as we were inserting them into this Chord, we would have to include both the <code class="literal">create</code> directive and the <code class="literal">index</code> directive.
+        </p>
+        <p>
+          There are some strict rules that govern the use of the <code class="literal">index</code> directive in write queries:
+        </p>
+        <div class="itemizedlist">
+          <ul>
+            <li>
+              <p>
+                The <code class="literal">index</code> directive may not appear within a top-level query. Indexes don't apply to objects but to the links between objects. The <code class="literal">index</code> directive is used in sub-queries to specify the order of the links between the parent object and the children.
+              </p>
+            </li>
+            <li>
+              <p>
+                If there are <span class="emphasis"><em>n</em></span> sibling sub-queries that specify an index, the values specified must include every integer from 0 to <span class="emphasis"><em>n</em></span>-1. You must always start with zero. You may not include duplicate indexes, and you may not skip an index. It is not required that every element of a sub-query array have an index. Metaweb collections can be partially ordered and partially unordered.
+              </p>
+            </li>
+          </ul>
+        </div>
+        <p>
+          This second rule may seem surprisingly strict, but remember that despite the name "index", the values we specify with the <code class="literal">index</code> directive are not array indexes. The numbers are merely a simple way to specify a series of less than and greater than relationships. The requirement that indexes always run from 0 through <span class="emphasis"><em>n</em></span>-1 means that there is no way to insert an element at a given location with an ordered collection. All we can do is move elements to (or insert new elements at) the beginning of the list. Here's how we would change our CEG arpeggio into a GCE arpeggio, for example:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/chord",
+  "name":"broken CEG",
+  "note": [{
+    "index":0,
+    "type":"/user/docs/music/note",
+    "name":"G"
+  }]
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "type" : "/user/docs/music/chord",
+  "name" : "broken CEG",
+  "note" : [{
+      "index" : 0,
+      "type" : "/user/docs/music/note"
+      "name" : "G",
+   }]
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          In this query, the response is identical to the query: there is no <code class="literal">"index":"reordered"</code> property in the response to let us know that our query succeeded. But we can check with a simple read:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Read
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/chord",
+  "name":"broken CEG",
+  "note":[{
+    "index":null,
+    "name":null,
+    "sort":"index"
+  }]
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "type" : "/user/docs/music/chord",
+  "name" : "broken CEG",
+  "note" : [
+    {"index" : 0, "name" : "G"},
+    {"index" : 1, "name" : "C"},
+    {"index" : 2, "name" : "E"}
+  ]
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Now, let's add two more notes to beginning of the arpeggio. This query demonstrates that the <code class="literal">index</code> property can be used along with a <code class="literal">create</code> directive. The notes already exist, but are not connected so we get <code class="literal">"create":"connected"</code> in the response:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/chord",
+  "name":"broken CEG",
+  "note": [{
+    "create":"unless_exists",
+    "index":0,
+    "type":"/user/docs/music/note",
+    "name":"B"
+  },{
+    "create":"unless_exists",
+    "index":1,
+    "type":"/user/docs/music/note",
+    "name":"F"
+  }]
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/chord",
+  "name":"broken CEG",
+  "note":[{
+    "create":"connected",
+    "index":0,
+    "type":"/user/docs/music/note",
+    "name":"B"
+  },{
+    "create":"connected",
+    "index":1,
+    "type":"/user/docs/music/note",
+    "name":"F"
+  }]
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          If you repeat the read query from above, you'll see that the sequence of notes in our arpeggio is now BFGCE.
+        </p>
+        <p>
+          Metaweb's ordered collections are not random-access arrays and do not behave that way. In read queries, you cannot ask for the object with a specific index, you can only sort by index (and optionally limit the number of results.) And in writes, you cannot insert an element at a specified index unless you specify the index of all elements that come before it.
+        </p>
+        <div class="sidebar">
+          <p class="title">
+            <b>Arpeggios and Duplicate Notes</b>
+          </p>
+          <p>
+            If you are a musician, you probably know that broken chords often repeat a note. In practice, we'd want to represent arpeggios like EGCE, where the note E appears twice. In Metaweb, the value of a property is a set, and sets do not allow duplicates, even when they are ordered. That is, ordered collections in Metaweb are still sets, not lists, and they do not allow duplicates. In order to represent an arpeggio EGCE, therefore, we'd have to create two separate note objects named E. But having two objects that both represent the note E is problematic: the <code class="literal">next</code> and <code class="literal">chord</code> properties of the Note type are premised on the assumption that there will only be one Note instance for each note.
+          </p>
+          <p>
+            There are two lessons to be learned here:
+          </p>
+          <div class="itemizedlist">
+            <ul>
+              <li>
+                <p>
+                  Ordered collections are still sets, and do not allow duplicates.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Designing good Metaweb schemas for knowledge representation is hard to do.
+                </p>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title">
+                <a id="namespacewrites" name="namespacewrites"></a>5.11. Namespaces and Enumerations
+              </h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          By placing an object in a namespace we define a fully-qualified name for it, and that name can be used as the value of the <code class="literal">id</code> property to uniquely identify the object. In this section we'll demonstrate how to do this and explore namespaces and enumerations in more detail.
+        </p>
+        <p>
+          We begin with a review of material from <a class="xref" href="http://mql.freebaseapps.com/ch02.html" title="Chapter 2. Metaweb Architecture">Chapter 2</a>. First, remember that fully-qualified names and namespaces don't have anything to do with the <code class="literal">name</code> property of an object. The <code class="literal">name</code> property defines a human-readable display name for an object.
+        </p>
+        <p>
+          Fully-qualified names are defined by the value type <code class="literal">/type/key</code>. Every object has a <code class="literal">key</code> property that holds a set of <code class="literal">/type/key</code> values. If you want an object to have a fully-qualified name, insert a key into its <code class="literal">key</code> property. The <code class="literal">value</code> property of the key specifies the object's unqualified or local name. And the <code class="literal">namespace</code> property of the key specifies the object that defines the namespace. Any object can be a namespace: the only requirement is that the object must itself have a key. In this way we get a chain of <code class="literal">/type/key/value</code> properties that continues until we find a <code class="literal">/type/key/namespace</code> property that refers to the special root namespace object.
+        </p>
+        <p>
+          The type <code class="literal">/type/namespace</code> defines the property <code class="literal">/type/namespace/keys</code>, which is the reciprocal of <code class="literal">/type/key/namespace</code>. Namespaces also have a <code class="literal">unique</code> property. If <code class="literal">true</code>, the namespace may not contain two names for the same object. Objects that are used as namespaces are usually given the type <code class="literal">/type/namespace</code>, but this is not required.
+        </p>
+        <p>
+          The reason that namespaces are useful is that namespaces allow us to use fully-qualified names to uniquely identify objects. If an object is given a key, then we can use its unique fully-qualified name as the value of the <code class="literal">id</code> property. Identifying objects with a meaningful id is simpler than using a long string of hexadecimal digits in the <code class="literal">/guid</code> pseudo-namespace.
+        </p>
+        <p>
+          Now that we've reviewed namespaces, let's create a namespace in which we can define names for our Note objects. Since notes are of type <code class="literal">/user/docs/music/note</code>, let's use the plural form <code class="literal">/user/docs/music/notes</code> as the id of the namespace. Here's how we create the new namespace object and insert it into <code class="literal">/user/docs/music</code> (using our domain object as a namespace):
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "id":"/user/docs/music",
+  "/type/namespace/keys": {
+    "value":"notes",
+    "namespace": {
+      "create":"unless_connected",
+      "type":"/type/namespace",
+      "unique":false
+    }
+  }
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "id" : "/user/docs/music",
+  "/type/namespace/keys" : {
+    "value" : "notes",
+    "namespace" : {
+      "create" : "created",
+      "type" : "/type/namespace",
+      "unique" : false
+    }
+  }
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Now let's put some of the note objects we've created into our new namespace:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">[{
+  "type":"/user/docs/music/note",
+  "name":"C",
+  "key":{
+    "connect":"insert",
+    "namespace":"/user/docs/music/notes",
+    "value":"C"
+  }
+},{
+  "type":"/user/docs/music/note",
+  "name":"E",
+  "key":{
+    "connect":"insert",
+    "namespace":"/user/docs/music/notes",
+    "value":"E"
+  }
+},{
+  "type":"/user/docs/music/note",
+  "name":"G",
+  "key":{
+    "connect":"insert",
+    "namespace":"/user/docs/music/notes",
+    "value":"G"
+  }
+}]
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">[{
+  "type":"/user/docs/music/note",
+  "name":"C",
+  "key":{
+    "connect":"inserted",
+    "namespace":"/user/docs/music/notes",
+    "value":"C"
+  }
+},{
+  "type":"/user/docs/music/note",
+  "name":"E",
+  "key":{
+    "connect":"inserted",
+    "namespace":"/user/docs/music/notes",
+    "value":"E"
+  }
+},{
+  "type":"/user/docs/music/note",
+  "name":"G",
+  "key":{
+    "connect":"inserted",
+    "namespace":"/user/docs/music/notes",
+    "value":"G"
+  }
+}]
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          This query gives the notes C, E, and G keys named "C", "E", and "G" within the namespace <code class="literal">/user/docs/music/notes</code>. That is, it defines fully-qualified names for these notes <code class="literal">/user/docs/music/notes/C</code>, <code class="literal">/user/docs/music/notes/E</code>, and <code class="literal">/user/docs/music/notes/G</code>. Now that these notes have unique ids, it becomes (somewhat) easier to use them in queries. Here's how we might create a chord:
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Write
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "create":"unless_exists",
+  "type":"/user/docs/music/chord",
+  "name":"CEG",
+  "note":[{
+    "connect":"insert",
+    "id":"/user/docs/music/notes/C"
+  },{
+    "connect":"insert",
+    "id":"/user/docs/music/notes/E"
+  },{
+    "connect":"insert",
+    "id":"/user/docs/music/notes/G"
+  }]
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "create":"existed",
+  "type":"/user/docs/music/chord",
+  "name":"CEG",
+  "note":[{
+    "connect":"present",
+    "id":"/user/docs/music/notes/C"
+  },{
+    "connect":"present",
+    "id":"/user/docs/music/notes/E"
+  },{
+    "connect":"present",
+    "id":"/user/docs/music/notes/G"
+  }]
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          This query replaces the <code class="literal">name</code> and <code class="literal">type</code> properties of each note with a single <code class="literal">id</code> property. It doesn't actually do anything, since we have already created the CEG chord. We've seen that we can use a note's fully-qualified name as the value of its <code class="literal">id</code> property. What if we query the <code class="literal">id</code> of a note?
+        </p>
+        <div class="informaltable">
+          <table border="1">
+            <colgroup>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  Read
+                </th>
+                <th>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <pre class="programlisting">{
+  "type":"/user/docs/music/chord",
+  "name":"CEG",
+  "note":[{"id":null}]
+}
+</pre>
+                </td>
+                <td>
+                  <pre class="programlisting">{
+  "type" : "/user/docs/music/chord",
+  "name" : "CEG",
+  "note" : [
+    {"id" : "/user/docs/music/notes/C"},
+    {"id" : "/user/docs/music/notes/G"},
+    {"id" : "/user/docs/music/notes/E"}
+  ]
+}
+</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Our query now returns the ids we just defined rather returning an id from the <code class="literal">/guid</code> namespace as it would have done before these ids were defined.
+        </p>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="typenamespacekeys" name="typenamespacekeys"></a>5.11.1. The /type/namespace/keys Property
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            We've seen that we can put objects into a namespace by setting the <code class="literal">key</code> property of the object. It is also possible to work with namespaces using the reciprocal property <code class="literal">/type/namespace/keys</code>. We've been using <code class="literal">/user/docs/music/note</code> as a namespace. This next query asks what keys it holds:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Read
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "id":"/user/docs/music/notes",
+  "/type/namespace/keys":[]
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "id":"/user/docs/music/notes",
+  "/type/namespace/keys":[
+    "C","E","G"
+  ]
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            The namespace holds the local names of the three notes we added. Let's repeat the query and ask for more detail:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Read
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "id":"/user/docs/music/notes",
+  "/type/namespace/keys":[{}]
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "id" : "/user/docs/music/note",
+  "/type/namespace/keys" : [{
+    "type" : "/type/key",
+    "namespace" : "/user/docs/music/notes/C",
+    "value" : "C"
+  },{
+    "type" : "/type/key",
+    "namespace" : "/user/docs/music/notes/E",
+    "value" : "E"
+  },{
+    "type" : "/type/key",
+    "namespace" : "/user/docs/music/notes/G",
+    "value" : "G"
+  }]
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            The values of the <code class="literal">/type/namespace/keys</code> property are <code class="literal">/type/key</code> values that have <code class="literal">value</code> and <code class="literal">namespace</code> properties.
+          </p>
+          <p>
+            There is one very important point to notice about these query results. When a key value is used with <code class="literal">/type/object/key</code>, the <code class="literal">namespace</code> property is the id of the namespace object (such as <code class="literal">/user/docs/music/notes</code>) that holds the key. But when a key value is used with <code class="literal">/type/namespace/keys</code>, the <code class="literal">namespace</code> property is the id of the object (such as <code class="literal">/user/docs/music/notes/C</code>) contained by the namespace. This is important to understand, so we'll state it another way: suppose that an object <code class="literal">o</code> has a fully-qualified name in the namespace <code class="literal">n</code>. If we query the <code class="literal">key</code> property of <code class="literal">o</code>, we'll find a <code class="literal">/type/key</code> object whose <code class="literal">namespace</code> property refers to <code class="literal">n</code>. And if we query the <code class="literal">/type/namespace/keys</code> property of <code class="literal">n</code>, we'll find a <code class="literal">/type/key</code> object whose <code class="literal">namespace</code> property refers to <code class="literal">o</code>.
+          </p>
+          <p>
+            If you wanted to create a Metaweb namespace browser application, you could repeat the query above, starting with the id of the root namespace <code class="literal">"/"</code>. The <code class="literal">namespace</code> properties of each of the returned keys specify the ids of all objects in the root namespace. If you recursively query each of these ids, you'll find the complete set of Metaweb objects with fully-qualified names.
+          </p>
+          <p>
+            It is also possible to add objects to namespaces using the <code class="literal">/type/namespace/keys</code> property instead of <code class="literal">/type/object/key</code>. The following query creates a new Note object named "G flat" and assigns it the fully-qualified name <code class="literal">/user/docs/music/notes/G_flat</code>:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Write
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "id":"/user/docs/music/notes",
+  "/type/namespace/keys":{
+    "connect":"insert",
+    "value":"G_flat",
+    "namespace":{
+      "create":"unless_exists",
+      "name":"G flat",
+      "type":"/user/docs/music/note"
+    }
+  }
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "id":"/user/docs/music/notes",
+  "/type/namespace/keys":{
+    "connect":"inserted",
+    "value":"G_flat",
+    "namespace":{
+      "create":"created",
+      "name":"G flat",
+      "type":"/user/docs/music/note"
+    }
+  }
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="fullyqualifiedwrites" name="fullyqualifiedwrites"></a>5.11.2. Fully-Qualified Names and Uniqueness
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            The key feature of fully-qualified names is their uniqueness: two objects simply cannot share the same id. In this section we experiment with uniqueness and demonstrate how to change the object to which an id refers and how to change the id of an object.
+          </p>
+          <p>
+            First, let's try to give the note F the same key that we assigned to G:
+          </p>
+          <pre class="programlisting">{
+  "type":"/user/docs/music/note",
+  "name":"F",
+  "key":{
+    "connect":"insert",
+    "namespace":"/user/docs/music/notes",
+    "value":"G"
+  }
+}
+</pre>
+          <p>
+            This query is syntactically valid JSON, and semantically valid MQL, but it fails with the error message "This value is already in use. Please delete it first": Metaweb simply will not allow the fully-qualified name <code class="literal">/user/docs/music/notes/G</code> to refer to two different note objects. If you want to make <code class="literal">/user/docs/music/notes/G</code> refer to the note F, you must first make sure that that note does not refer to the note G. This takes two queries. First, we must remove the fully-qualified name for the note G:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Write
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "id":"/user/docs/music/notes/G",
+  "key":{
+    "connect":"delete",
+    "namespace":"/user/docs/music/notes",
+    "value":"G"
+  }
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "id":"/user/docs/music/notes/G",
+  "key":{
+    "connect":"deleted",
+    "namespace":"/user/docs/music/notes",
+    "value":"G"
+  }
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            And then we can assign that fully-qualified name to the note F:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Write
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "type":"/user/docs/music/note",
+  "name":"F",
+  "key":{
+    "connect":"insert",
+    "namespace":"/user/docs/music/notes",
+    "value":"G"
+  }
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "type":"/user/docs/music/note",
+  "name":"F",
+  "key":{
+    "connect":"inserted",
+    "namespace":"/user/docs/music/notes",
+    "value":"G"
+  }
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Now if we were to ask for the name of the note <code class="literal">/user/docs/music/notes/G</code>, we'd get "F". Making a fully-qualified name refer to another object is simpler if we use the <code class="literal">/type/namespace/keys</code> property instead. Here's how we could make <code class="literal">/user/docs/music/note/G</code> refer to the note G again. Note that only one query is required if we do it this way:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Write
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "id":"/user/docs/music/notes",
+  "/type/namespace/keys": {
+    "value":"G",
+    "namespace":{
+       "connect":"update",
+       "type":"/user/docs/music/note",
+       "name":"G"
+    }
+  }
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "id":"/user/docs/music/notes",
+  "/type/namespace/keys":{
+    "value":"G",
+    "namespace":{
+      "connect":"updated",
+      "type":"/user/docs/music/note",
+      "name":"G"
+    }
+  }
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            This query locates the <code class="literal">/type/key</code> object that defines the name <code class="literal">/user/docs/music/notes/G</code>, and updates the <code class="literal">namespace</code> property of that key, so that the name points to a different object. Note that you should not typically have to alter namespaces like this. Objects that have fully-qualified names should typically be constants.
+          </p>
+          <p>
+            Finally, notice that changing the object to which a fully-qualified name refers (as we did above) is a completely different operation than changing the fully-qualified name of an object. If we wanted to refer to the note G by the name <code class="literal">/user/docs/music/note/Gnatural</code> instead of <code class="literal">/user/docs/music/note/G</code>, we could do this:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Write
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "name":"G",
+  "type":"/user/docs/music/note",
+  "key":[{
+    "connect":"delete",
+    "namespace":"/user/docs/music/notes",
+    "value":"G"
+  },{
+    "connect":"insert",
+    "namespace":"/user/docs/music/notes",
+    "value":"Gnatural"
+  }]
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "name":"G",
+  "type":"/user/docs/music/note",
+  "key":[{
+    "connect":"deleted",
+    "namespace":"/user/docs/music/notes",
+    "value":"G"
+  },{
+    "connect":"inserted",
+    "namespace":"/user/docs/music/notes",
+    "value":"Gnatural"
+  }]
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Since we did not set the <code class="literal">unique</code> property of our <code class="literal">/user/docs/music/notes</code> namespace to <code class="literal">true</code>, it is perfectly legal for one note to have two names (such as "G" and "Gnatural") in the namespace.
+          </p>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="id2970319" name="id2970319"></a>5.11.3. Enumerations
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            Suppose we want <span class="emphasis"><em>all</em></span> of our Note objects to have a fully-qualified name in the <code class="literal">/user/docs/music/notes</code> namespace. We can simplify the process of defining these fully-qualified names by giving the Note type a property of <code class="literal">/type/enumeration</code>. (See <a class="xref" href="http://mql.freebaseapps.com/ch03.html#enumerations" title="3.3.5. Enumerations">Section 3.3.5</a> for a review of enumerations).
+          </p>
+          <p>
+            Begin by adding a new property to the Note type using the freebase.com client on the sandbox. Name the property "lname" (for "local name") and set its expected type to <code class="literal">/type/enumeration</code>. Since our <code class="literal">/user/docs/music/notes</code> namespace is not unique (it allows multiple keys to refer to the same object) don't make this new <code class="literal">lname</code> property be unique.
+          </p>
+          <p>
+            At the time of this writing, the Freebase client does not allow you to specify the namespace associated with this <code class="literal">lname</code> property, and we have to make our own write query to specify that. When you try this yourself, you may find that you are able to enter the <code class="literal">/user/docs/music/notes</code> namespace directly into the client. If so that is all you need to do. If not, execute this query with the query editor on the sandbox:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Write
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "id":"/user/docs/music/note/lname",
+  "/type/property/enumeration": {
+    "connect":"update",
+    "id:"/user/docs/music/notes"
+  }
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "id" : "/user/docs/music/note/lname",
+  "/type/property/enumeration" : {
+    "connect" : "inserted",
+    "id" : "/user/docs/music/notes"
+  }
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            With this new property defined and linked to our namespace, we can query the names, ids, and lnames of our notes. Note objects that have already been given fully-qualified names in our namespace automatically have their <code class="literal">lname</code> property defined. The following read query (and partial set of results) demonstrate:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Read
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">[{
+    "type" : "/user/docs/music/note",
+    "name" : null,
+    "id" : null,
+    "lname" : null
+}]
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">[{
+  "type" : "/user/docs/music/note",
+  "name" : "C",
+  "id" : "/user/docs/music/notes/C",
+  "lname" : "C"
+},{
+  "type" : "/user/docs/music/note",
+  "name" : "G",
+  "id" : "/user/docs/music/notes/Gnatural",
+  "lname" : "Gnatural"
+},{
+  "type" : "/user/docs/music/note",
+  "name" : "F",
+  "id" : "/guid/9202a8c04000641f800000000901ca07",
+  "lname" : null
+}]
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            With the <code class="literal">lname</code> enumeration defined, it becomes simple to create a new Note object and give it a fully-qualified name at the same time:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Write
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "create":"unless_exists",
+  "type":"/user/docs/music/note",
+  "name":"F sharp",
+  "lname":"Fsharp",
+  "id":null
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "create" : "created",
+  "type" : "/user/docs/music/note",
+  "name" : "F sharp",
+  "lname" : "Fsharp",
+  "id" : "/user/docs/music/notes/Fsharp"
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Specifying a value for <code class="literal">lname</code> is all we need to do to define a fully-qualified name for the new object. Note that the <code class="literal">id</code> query we included in the write returns the fully-qualified name we defined rather than the guid of the object.
+          </p>
+          <p>
+            To define a lname for an already existing object, you can use a query like this one, which creates a second fully-qualified name for the Note object we just defined:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Write
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "id":"/user/docs/music/notes/Fsharp",
+  "type":"/user/docs/music/note",
+  "lname":{
+    "connect":"insert",
+    "value":"sharpf"
+  }
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "id" : "/user/docs/music/notes/Fsharp",
+  "type" : "/user/docs/music/note",
+  "lname" : {
+    "connect" : "inserted",
+    "value" : "sharpf"
+  },
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            You can check that this worked with a simple read query:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Read
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "id" : "/user/docs/music/notes/sharpf",
+  "/user/docs/music/note/lname" : [],
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "id" : "/user/docs/music/notes/sharpf",
+  "/user/docs/music/note/lname" : [
+    "Fsharp",
+    "sharpf"
+  ]
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title">
+                <a id="accessandpermissions" name="accessandpermissions"></a>5.12. Access Control and Permissions
+              </h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          As you know, Metaweb databases are completely open for reading: no authentication is required, and no access control is performed for reads. That is not the case for writes, but so far in this chapter we've ignored access control issues. You've been creating instances of types you've defined yourself, and assuming that you've logged into the sandbox correctly, you've always been able to perform write queries. In practice, however, you may often need to work with domains, types and objects created by someone else, and you need to understand Metaweb's access control mechanism in order to know which writes are allowed and which are forbidden.
+        </p>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="id2970701" name="id2970701"></a>5.12.1. Users, Usergroups and Permissions
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            The <code class="literal">/type/user</code> type represents a single Metaweb user. The <code class="literal">/type/usergroup</code> type represents a set or group of users. And the <code class="literal">/type/permission</code> type represents a set of usergroups. A <code class="literal">/type/permission</code> object can be called a "permission group". Every object has a <code class="literal">permission</code> property that specifies its permission group. Only users in that permission group are allowed to modify the object. (This over-simplifies Metaweb's access control model a bit: details on per-object access control and per-property access control appear below.)
+          </p>
+          <p>
+            Your <code class="literal">/type/user</code> object has an associated usergroup and permission group that grants you permission to modify the object, and prevents most other users from modifying your object. You can look up the name and ids of your own usergroup and permission group with a read query like this one:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Read
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "id":"/user/docs",
+  "permission": {
+    "id":null,
+    "name":null,
+    "permits":[{
+      "id":null,
+      "name":null,
+      "member":[]
+    }]
+  }
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "id" : "/user/docs",
+  "permission" : {
+    "id" : "/guid/9202a8c04000641f800000000120900f",
+    "name" : null,
+    "permits" : [{
+      "id" : "/boot/user_administrator_group",
+      "name" : null,
+      "member" : ["/user/user_administrator"]
+    },{
+      "id" : "/guid/9202a8c04000641f800000000120901b",
+      "name" : "docs's private user group",
+      "member" : ["/user/docs"]
+    }]
+  }
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Furthermore, when you create a new domain using the <span class="emphasis"><em>freebase.com</em></span> client, a new permission group and two new user groups are created to control access to the domain. We can explore this by re-running the query above for the <code class="literal">/user/docs/music</code> domain object. The results shown here omit some of the administrative members of the <code class="literal">/boot/schema_group</code> usergroup:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Read
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "id":"/user/docs/music",
+  "permission": {
+    "id":null,
+    "name":null,
+    "permits":[{
+      "id":null,
+      "name":null,
+      "member":[]
+    }]
+  }
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "id" : "/user/docs/music",
+  "permission" : {
+    "id" : "/guid/9202a8c04000641f800000000903db10",
+    "name" : null,
+    "permits" : [{
+      "id" : "/guid/9202a8c04000641f800000000903db14",
+      "name" : "Owners of music domain",
+      "member" : ["/user/docs"]
+    },{
+      "id" : "/guid/9202a8c04000641f800000000903db1a",
+      "name" : "Music Experts",
+      "member" : []
+    },{
+      "id" : "/boot/schema_group",
+      "name" : null,
+      "member" : [
+        "/user/domain_administrator",
+        "/user/typelibrarian",
+        "/user/delete_bot",
+        "/user/merge_bot"
+      ]
+    }]
+  }
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            You might also be interested to know what usergroups you are part of and what permissions groups those usergroups are part of:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Read
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "id":"/user/docs",
+  "/type/user/usergroup":[{
+    "id":null,
+    "name":null,
+    "/type/usergroup/permitted":[{
+      "id":null,
+      "name":null
+    }]
+  }]
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "id" : "/user/docs",
+  "/type/user/usergroup" : [{
+    "id" : "/boot/all_group",
+    "name" : "Global User Group",
+    "/type/usergroup/permitted" : [{
+      "id" : "/boot/all_permission",
+      "name" : "Global Write Permission"
+    }]
+  },{
+    "id" : "/guid/9202a8c04000641f800000000120901b",
+    "name" : "docs's private user group",
+    "/type/usergroup/permitted" : [{
+      "id" : "/guid/9202a8c04000641f800000000120900f",
+      "name" : null
+    },{
+      "id" : "/guid/9202a8c04000641f8000000001209021",
+      "name" : null
+    }]
+  },{
+    "id" : "/guid/9202a8c04000641f8000000001209025",
+    "name" : "Owners of docs's default types",
+    "/type/usergroup/permitted" : [{
+      "id" : "/guid/9202a8c04000641f8000000001209021",
+      "name" : null
+    }]
+  },{
+    "id" : "/guid/9202a8c04000641f800000000903db14",
+    "name" : "Owners of music domain",
+    "/type/usergroup/permitted" : [{
+      "id" : "/guid/9202a8c04000641f800000000903db10",
+      "name" : null
+    }]
+  }]
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            All Metaweb users (in good standing) are part of the <code class="literal">/boot/all_group</code> usergroup and therefore part of the <code class="literal">/boot/all_permission</code> permission group. By default, new objects created with MQL write queries are given a <code class="literal">permission</code> of <code class="literal">/boot/all_permission</code>. We'll learn how to alter this default and specify a more restrictive permission in <a class="xref" href="http://mql.freebaseapps.com/ch06.html" title="Chapter 6. Metaweb Write Services">Chapter 6</a>. MQL write queries are not allowed to alter the <code class="literal">permission</code> property of any object, so once an object is created, its permission is fixed. It is possible, of course, to alter the membership of a permission group or a usergroup, and the <span class="emphasis"><em>freebase.com</em></span> client defines a UI for adding users to domain-related usergroups.
+          </p>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="id2971005" name="id2971005"></a>5.12.2. Per-Object Access Control
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            Every Metaweb object has a <code class="literal">permission</code> property that specifies the <code class="literal">/type/permission</code> object that controls access to it. The fundamental Metaweb access control rule is surprisingly simple: <span class="emphasis"><em>to create an outgoing link from an object o you must be a member of the permission group of o.</em></span> For the purposes of this rule, setting a primitive value on o is considered creating an outgoing link.
+          </p>
+          <p>
+            Another way to say this is that creating a link (between two objects or between an object and a primitive value) requires membership in the permission group of the object from which the link originates. Remember that Metaweb properties can be master properties, which represent outgoing links (and primitive values), or reverse properties, which represent incoming links. So we can also state the access control rule in terms of properties:
+          </p>
+          <div class="itemizedlist">
+            <ul>
+              <li>
+                <p>
+                  In order to set a master property of o to some other object p, the user must be a member of the permission group of o.
+                </p>
+              </li>
+              <li>
+                <p>
+                  In order to set a reverse property of o to some other object p, the user must be a member of the permission group of p.
+                </p>
+              </li>
+            </ul>
+          </div>
+          <p>
+            The basic rule is very simple. But many important aspects of the Metaweb access control model flow from it. For example, <code class="literal">/type/object/type</code> is a master property (with <code class="literal">/type/type/instance</code> its reverse). This means that any user can link an object they create to any type, regardless of the permissions associated with the type. It is simply not possible to define a Metaweb type that other users cannot use.
+          </p>
+          <p>
+            Although the use of types is not subject to access control, the use of namespaces is tightly controlled. The <code class="literal">/type/object/key</code> property is a reverse property: <code class="literal">/type/namespace/keys</code> is the master property. This means that adding or modifying names in a namespace requires membership in the the permission group of the namespace. This means, for example, that users can't add types to other user's domains (unless the owner of that domain has added them to an appropriate usergroup), can't modify the system types in the <code class="literal">/type</code> domain, and can't define new languages in the <code class="literal">/lang</code> namespace.
+          </p>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title">
+                  <a id="perpropertyaccesscontrol" name="perpropertyaccesscontrol"></a>5.12.3. Per-Property Access Control
+                </h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            Metaweb allows one additional layer of access control on top of the basic access control rule. It is possible to define properties that require special permission to set. Per-property access control is not based on the permission groups of the objects being linked, but on the permission group of the type that defines the property. This feature is important to owners of authoritative datasets who want to make that data available on a read-only basis through properties on existing objects.
+          </p>
+          <p>
+            At the time of this writing <sup>[<a class="footnote" href="http://mql.freebaseapps.com/ch05#ftn.id2971147" id="id2971147" name="id2971147">23</a>]</sup>, the <span class="emphasis"><em>freebase.com</em></span> client does not allow you to define properties of this kind. Instead, you must use a MQL write query to manually set the <code class="literal">/type/property/requires_permission</code> to <code class="literal">true</code> for the property. As an example, let's make the <code class="literal">next</code> property of our Note type require per-property permissions:
+          </p>
+          <div class="informaltable">
+            <table border="1">
+              <colgroup>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    Write
+                  </th>
+                  <th>
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <pre class="programlisting">{
+  "id":"/user/docs/music/note/next",
+  "/type/property/requires_permission":{
+    "connect":"update",
+    "value":true
+  }
+}
+</pre>
+                  </td>
+                  <td>
+                    <pre class="programlisting">{
+  "id" : "/user/docs/music/note/next",
+  "/type/property/requires_permission" : {
+    "connect" : "inserted",
+    "value" : true
+  }
+}
+</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            With this change made, setting the <code class="literal">next</code> property requires membership in the permission group of the Note type (which, by default, is the same as the permission group of the <code class="literal">/user/docs/music</code> domain). Anyone can create Note instances, but only owners of the type can set the <code class="literal">next</code> property. Note that per-property access control is in addition to, not instead of, per-object access control. So to set the <code class="literal">next</code> property of a Note object, the user must be a member of the permission group of the object itself, and also be a member of the permission group of the Note type.
+          </p>
+        </div>
+      </div>
+      <div class="footnotes">
+        <div class="footnote">
+          <p>
+            <sup>[<a class="para" href="http://mql.freebaseapps.com/ch05#id2966499" id="ftn.id2966499" name="ftn.id2966499">22</a>]</sup> Remember, however, that Metaweb maintains a modification history for each object. We learned how to query the history of an object and the historical state of an object in <a class="xref" href="http://mql.freebaseapps.com/ch03.html#history" title="3.7.4. History">Section 3.7.4</a> and <a class="xref" href="http://mql.freebaseapps.com/ch04.html#asoftime" title="4.2.4.4. Making Queries in the Past">Section 4.2.4.4</a>. The <span class="emphasis"><em>freebase.com</em></span> client also makes object history available through links on the pages it displays.
+          </p>
+        </div>
+        <div class="footnote">
+          <p>
+            <sup>[<a class="para" href="http://mql.freebaseapps.com/ch05#id2971147" id="ftn.id2971147" name="ftn.id2971147">23</a>]</sup> September, 2008
+          </p>
+        </div>
+      </div>
+    </div>
+    
+  
+</body></html>
