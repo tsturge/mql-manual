@@ -3615,6 +3615,54 @@
               </table>
             </div>
             <p>
+              A property named by <code class="literal">return</code> can also be a path into a sub-query, written with dots as in the <code class="literal">sort</code> directive. Here each track's <code class="literal">album</code> sub-query returns the album's name, and <code class="literal">"album.name"</code> takes it out of the sub-query, alongside the track's own name:
+            </p>
+            <div class="informaltable">
+              <table border="1">
+                <colgroup>
+                  <col>
+                  <col>
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>
+                      Query
+                    </th>
+                    <th>
+                      Result
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <pre class="programlisting">[{
+  "type" : "/music/track",
+  "name" : null,
+  "album" : {
+    "name" : null,
+    "artist" : "The Police"
+  },
+  "return" : [ "name", "album.name" ]
+}]
+</pre>
+                    </td>
+                    <td>
+                      <pre class="programlisting">[
+  [ "Next to You", "Outlandos d'Amour" ],
+  [ "So Lonely", "Outlandos d'Amour" ],
+  // 98 more results omitted...
+]
+</pre>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              Every property in a path except the last must be a unique sub-query: it must be written with curly braces, so that it matches at most one object, and it must not have a <code class="literal">return</code> directive of its own. The last property in the path must appear in that sub-query. If a sub-query along the path matches nothing, because it is <code class="literal">optional</code>, the path returns <code class="literal">null</code>.
+            </p>
+            <p>
               Each property named by <code class="literal">return</code> must appear in the same query, and it may itself be a sub-query, with or without a <code class="literal">return</code> directive of its own. The other directives still apply: <code class="literal">sort</code>, <code class="literal">limit</code> and <code class="literal">optional</code> select and order the matches before the property values are returned, and the property can be <code class="literal">index</code> or <code class="literal">link</code>. A query that matches nothing still returns <code class="literal">null</code>. The values <code class="literal">"count"</code> and <code class="literal">"estimate-count"</code> always have the meanings described above, so <code class="literal">return</code> cannot be used to select the <code class="literal">count</code> or <code class="literal">estimate-count</code> directives, or any other directive. Like the other directives in this section, <code class="literal">return</code> can only be used in read queries.
             </p>
           </div>
