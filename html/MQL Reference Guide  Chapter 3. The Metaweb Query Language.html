@@ -3422,7 +3422,7 @@
               <div>
                 <div>
                   <h4 class="title">
-                    <a id="returnproperty" name="returnproperty"></a>3.5.2.1. Returning a Single Property
+                    <a id="returnproperty" name="returnproperty"></a>3.5.2.1. Returning Selected Properties
                   </h4>
                 </div>
               </div>
@@ -3520,7 +3520,59 @@
               </table>
             </div>
             <p>
-              The property named by <code class="literal">return</code> must appear in the same query, and it may itself be a sub-query, with or without a <code class="literal">return</code> directive of its own. The other directives still apply: <code class="literal">sort</code>, <code class="literal">limit</code> and <code class="literal">optional</code> select and order the matches before the property values are returned, and the property can be <code class="literal">index</code> or <code class="literal">link</code>. A query that matches nothing still returns <code class="literal">null</code>. The values <code class="literal">"count"</code> and <code class="literal">"estimate-count"</code> always have the meanings described above, so <code class="literal">return</code> cannot be used to select the <code class="literal">count</code> or <code class="literal">estimate-count</code> directives, or any other directive. Like the other directives in this section, <code class="literal">return</code> can only be used in read queries.
+              The value of <code class="literal">return</code> can also be an object, to return several properties under new names. Each value in the object names a property of the query, and its key is the name to return that property's value under. Properties that are not named are left out of the result, and the same property may be named more than once. Here we ask for the name and release date of each album, returned as <code class="literal">title</code> and <code class="literal">released</code>:
+            </p>
+            <div class="informaltable">
+              <table border="1">
+                <colgroup>
+                  <col>
+                  <col>
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>
+                      Query
+                    </th>
+                    <th>
+                      Result
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <pre class="programlisting">[{
+  "type" : "/music/album",
+  "artist" : "The Police",
+  "name" : null,
+  "release_date" : null,
+  "return" : {
+    "title" : "name",
+    "released" : "release_date"
+  }
+}]
+</pre>
+                    </td>
+                    <td>
+                      <pre class="programlisting">[
+  {
+    "title" : "Outlandos d'Amour",
+    "released" : "1978-11-02"
+  },
+  {
+    "title" : "Reggatta de Blanc",
+    "released" : "1979-10-02"
+  },
+  // 20 more results omitted...
+]
+</pre>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              Each property named by <code class="literal">return</code> must appear in the same query, and it may itself be a sub-query, with or without a <code class="literal">return</code> directive of its own. The other directives still apply: <code class="literal">sort</code>, <code class="literal">limit</code> and <code class="literal">optional</code> select and order the matches before the property values are returned, and the property can be <code class="literal">index</code> or <code class="literal">link</code>. A query that matches nothing still returns <code class="literal">null</code>. The values <code class="literal">"count"</code> and <code class="literal">"estimate-count"</code> always have the meanings described above, so <code class="literal">return</code> cannot be used to select the <code class="literal">count</code> or <code class="literal">estimate-count</code> directives, or any other directive. Like the other directives in this section, <code class="literal">return</code> can only be used in read queries.
             </p>
           </div>
         </div>
