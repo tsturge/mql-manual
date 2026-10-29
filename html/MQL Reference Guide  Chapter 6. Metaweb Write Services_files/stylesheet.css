@@ -141,12 +141,21 @@ div.example p.title {
   font-weight: bold;
   }
 
-div.titlepage h4 {
+/* the author and date above the book title */
+div.book div.titlepage h4 {
   float: right;
   margin: 3px 0;
   font-size: 0.9em;
   font-weight: normal;
   color: #777;
+  }
+
+/* sub-subsection titles, such as 3.5.5.1 */
+div.sect3 div.titlepage h4 {
+  margin: 20px 0 5px 0;
+  font-size: 1.1em;
+  font-weight: normal;
+  color: #333;
   }
 
 div.table td {
