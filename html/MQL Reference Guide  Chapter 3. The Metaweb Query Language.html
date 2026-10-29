@@ -3417,6 +3417,112 @@
           <p>
             We could also have used <code class="literal">estimate-count:null</code> in the query. In that case, each of the 100 results would have included <code class="literal">estimate-count:135</code>.
           </p>
+          <div class="sect3" lang="en" xml:lang="en">
+            <div class="titlepage">
+              <div>
+                <div>
+                  <h4 class="title">
+                    <a id="returnproperty" name="returnproperty"></a>3.5.2.1. Returning a Single Property
+                  </h4>
+                </div>
+              </div>
+            </div>
+            <p>
+              The value of the <code class="literal">return</code> directive can also be the name of a property in the same query. Metaweb then returns the value of that property in place of the whole object. This is useful when you want a list of values rather than a list of objects. For example, to get the names of the albums by The Police as a plain array of strings:
+            </p>
+            <div class="informaltable">
+              <table border="1">
+                <colgroup>
+                  <col>
+                  <col>
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>
+                      Query
+                    </th>
+                    <th>
+                      Result
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <pre class="programlisting">[{
+  "type" : "/music/album",
+  "artist" : "The Police",
+  "name" : null,
+  "return" : "name"
+}]
+</pre>
+                    </td>
+                    <td>
+                      <pre class="programlisting">[
+  "Outlandos d'Amour",
+  "Reggatta de Blanc",
+  "Zenyatta Mondatta",
+  // 19 more results omitted...
+]
+</pre>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              Without the <code class="literal">return</code> directive, each result would be an object with <code class="literal">type</code>, <code class="literal">artist</code> and <code class="literal">name</code> properties. The directive works in sub-queries too, so the same list can appear inside an artist's result:
+            </p>
+            <div class="informaltable">
+              <table border="1">
+                <colgroup>
+                  <col>
+                  <col>
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>
+                      Query
+                    </th>
+                    <th>
+                      Result
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <pre class="programlisting">{
+  "type" : "/music/artist",
+  "name" : "The Police",
+  "album" : [{
+    "name" : null,
+    "return" : "name"
+  }]
+}
+</pre>
+                    </td>
+                    <td>
+                      <pre class="programlisting">{
+  "type" : "/music/artist",
+  "name" : "The Police",
+  "album" : [
+    "Outlandos d'Amour",
+    "Reggatta de Blanc",
+    "Zenyatta Mondatta",
+    // 19 more results omitted...
+  ]
+}
+</pre>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              The property named by <code class="literal">return</code> must appear in the same query, and it may itself be a sub-query, with or without a <code class="literal">return</code> directive of its own. The other directives still apply: <code class="literal">sort</code>, <code class="literal">limit</code> and <code class="literal">optional</code> select and order the matches before the property values are returned, and the property can be <code class="literal">index</code> or <code class="literal">link</code>. A query that matches nothing still returns <code class="literal">null</code>. The values <code class="literal">"count"</code> and <code class="literal">"estimate-count"</code> always have the meanings described above, so <code class="literal">return</code> cannot be used to select the <code class="literal">count</code> or <code class="literal">estimate-count</code> directives, or any other directive. Like the other directives in this section, <code class="literal">return</code> can only be used in read queries.
+            </p>
+          </div>
         </div>
         <div class="sect2" lang="en" xml:lang="en">
           <div class="titlepage">
